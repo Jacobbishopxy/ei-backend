@@ -3,8 +3,13 @@ name := "ei-backend"
 version := "0.0.0"
 scalacOptions ++= Seq("-deprecation", "-feature")
 
-lazy val akkaHttpVersion = "10.1.11"
-lazy val akkaVersion = "2.6.3"
+val akkaHttpVersion = "10.1.11"
+val akkaVersion = "2.6.3"
+
+val h2V = "1.4.196"
+val pgV = "42.2.9"
+val slickV = "3.3.2"
+val mongoV = "2.8.0"
 
 lazy val root = (project in file(".")).
   settings(
@@ -19,6 +24,11 @@ lazy val root = (project in file(".")).
       "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
       "ch.qos.logback" % "logback-classic" % "1.2.3",
+
+      "com.h2database" % "h2" % h2V,
+      "org.postgresql" % "postgresql" % pgV,
+      "com.typesafe.slick" %% "slick" % slickV,
+      "org.mongodb.scala" %% "mongo-scala-driver" % mongoV,
     )
   )
 
