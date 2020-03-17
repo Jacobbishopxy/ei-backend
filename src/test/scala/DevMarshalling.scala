@@ -16,12 +16,10 @@ import scala.io.StdIn
  */
 object DevMarshalling extends App {
 
+  import DevMarshallingRepo._
+
   implicit val system: ActorSystem = ActorSystem("DevMarshalling")
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
-
-  // formats for unmarshalling and marshalling
-  implicit val itemFormat: RootJsonFormat[Item] = jsonFormat2(Item)
-  implicit val orderFormat: RootJsonFormat[Order] = jsonFormat1(Order)
 
   // (fake) async database query api
   def fetchItem(itemId: Long): Future[Option[Item]] = Future {
@@ -72,9 +70,16 @@ object DevMarshalling extends App {
 
 }
 
-// domain model
-final case class Item(name: String, id: Long)
-final case class Order(items: List[Item])
+
+object DevMarshallingRepo {
+  // domain model
+  final case class Item(name: String, id: Long)
+  final case class Order(items: List[Item])
+
+  // formats for unmarshalling and marshalling
+  implicit val itemFormat: RootJsonFormat[Item] = jsonFormat2(Item)
+  implicit val orderFormat: RootJsonFormat[Order] = jsonFormat1(Order)
+}
 
 
 

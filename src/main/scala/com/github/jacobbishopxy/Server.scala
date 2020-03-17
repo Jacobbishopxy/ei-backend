@@ -23,10 +23,10 @@ object Server extends App {
       }
     }
 
-  val port = 2020
-  val bindFuture = Http().bindAndHandle(route, "localhost", port)
+  val (host, port) = ("localhost", 2020)
+  val bindFuture = Http().bindAndHandle(route, host, port)
 
-  println(s"Server online at http://localhost:$port/\nPress RETURN to stop...")
+  println(s"Server online at http://$host:$port/\nPress RETURN to stop...")
   StdIn.readLine()
   bindFuture
     .flatMap(_.unbind())
