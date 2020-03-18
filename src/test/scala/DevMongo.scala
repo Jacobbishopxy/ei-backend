@@ -27,8 +27,7 @@ object DevMongo extends App {
 
   val infoDB = InfoDB(1, "Postgres", "database", 2, Cord(233, 135)) // fake data
 
-  val observable: Observable[Completed] = collection.insertOne(infoDB) // insert action
-  val insertExe = Await.result(observable.toFuture(), 10.seconds) // execute action
+  val insertExe = Await.result(collection.insertOne(infoDB).toFuture(), 10.seconds) // execute action
   println(insertExe)
 
   val res = Await.result(collection.find().toFuture(), 10.seconds) // read all

@@ -1,6 +1,6 @@
 package testCase
 
-import com.github.jacobbishopxy.gridLayout.GridLayoutRepo
+import com.github.jacobbishopxy.gridLayout.Repo
 import org.mongodb.scala._
 
 import scala.concurrent.Await
@@ -12,7 +12,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
  */
 object TestGridLayoutMongo extends App {
 
-  import GridLayoutRepo._
+  import Repo._
 
   val fakeLayouts = Seq(
     GridModel(Coordinate(0, 0, 0, 100, 200), Content("test1", "table", "demo link")),

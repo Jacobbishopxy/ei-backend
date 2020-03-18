@@ -6,8 +6,10 @@ import org.mongodb.scala.bson.codecs.Macros._
 import org.mongodb.scala.bson.codecs.DEFAULT_CODEC_REGISTRY
 import org.mongodb.scala.bson.annotations.BsonProperty
 import org.mongodb.scala.model.Filters._
+import org.mongodb.scala.model.ReplaceOptions
 import org.bson.codecs.configuration.CodecRegistries.{fromProviders, fromRegistries}
 import org.bson.codecs.configuration.CodecRegistry
+import org.mongodb.scala.result.UpdateResult
 import spray.json.DefaultJsonProtocol._
 import spray.json.RootJsonFormat
 
@@ -16,7 +18,7 @@ import scala.concurrent.Future
 /**
  * Created by Jacob Xie on 3/17/2020
  */
-object GridLayoutRepo {
+object Repo {
 
   case class Coordinate(i: Int, x: Int, y: Int, h: Int, w: Int)
   case class Content(title: String,
@@ -52,5 +54,11 @@ object GridLayoutRepo {
 
   def fetchItem(id: String): Future[GridLayout] =
     collection.find(equal("_id", id)).first().toFuture()
+
+  def updateItem(gl: GridLayout): Future[UpdateResult] =
+    collection.replaceOne(equal("_id", gl.id), gl).toFuture()
+
+  def upsertItem(gl: GridLayout): Future[UpdateResult] =
+    collection.replaceOne(equal("_id", gl.id), gl, ReplaceOptions().upsert(true)).toFuture()
 
 }
