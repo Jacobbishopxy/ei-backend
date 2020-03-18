@@ -26,6 +26,10 @@ object DevMarshalling extends App {
     orders.find(o => o.id == itemId)
   }
 
+  def fetchAll(): Future[Seq[Item]] = Future {
+    orders
+  }
+
   def saveOrder(order: Order): Future[Done] = {
     orders = order match {
       case Order(items) => items ::: orders
@@ -38,6 +42,10 @@ object DevMarshalling extends App {
 
   val route =
     concat(
+      path("items") {
+        val items = fetchAll()
+        complete(items)
+      },
       get {
         pathPrefix("item" / LongNumber) { id =>
           val maybeItem: Future[Option[Item]] = fetchItem(id)

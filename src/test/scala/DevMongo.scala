@@ -24,21 +24,15 @@ object DevMongo extends App {
   val database = mongoClient.getDatabase("dev").withCodecRegistry(codecRegistry)
   val collection: MongoCollection[InfoDB] = database.getCollection("test")
 
-  val observer = new Observer[Completed] {
-    override def onNext(result: Completed): Unit = println("Inserted")
-    override def onError(e: Throwable): Unit = println("Failed", e)
-    override def onComplete(): Unit = println("Completed")
-  }
-
 
   val infoDB = InfoDB(1, "Postgres", "database", 2, Cord(233, 135)) // fake data
 
   val observable: Observable[Completed] = collection.insertOne(infoDB) // insert action
-  //  observable.subscribe(observer) // execute action
+  val insertExe = Await.result(observable.toFuture(), 10.seconds) // execute action
+  println(insertExe)
 
-  val res = Await.result(collection.find().toFuture(), 10.seconds)
+  val res = Await.result(collection.find().toFuture(), 10.seconds) // read all
   println(res)
-
 
 }
 
