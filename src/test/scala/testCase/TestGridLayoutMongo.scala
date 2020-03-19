@@ -15,8 +15,8 @@ object TestGridLayoutMongo extends App {
   import Repo._
 
   val fakeLayouts = Seq(
-    GridModel(Coordinate(0, 0, 0, 100, 200), Content("test1", "table", "demo link")),
-    GridModel(Coordinate(1, 2, 2, 200, 250), Content("test2", "embedLink", "http://example.com")),
+    GridModel(Coordinate("0", 0, 0, 100, 200), Content("test1", "table", "demo link")),
+    GridModel(Coordinate("1", 2, 2, 200, 250), Content("test2", "embedLink", "http://example.com")),
   )
   val fakeData: GridLayout = GridLayout("test", fakeLayouts)
 

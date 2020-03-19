@@ -6,8 +6,6 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.server.Route
 import spray.json.DefaultJsonProtocol._
 
-import scala.concurrent.Future
-
 /**
  * Created by Jacob Xie on 3/18/2020
  */
@@ -18,8 +16,7 @@ object Routing {
   val route: Route =
     concat(
       path("grid-layout-all") {
-        val result: Future[Seq[GridLayout]] = fetchAll()
-        complete(result)
+        complete(fetchAll())
       },
       path("grid-layout") {
         concat(

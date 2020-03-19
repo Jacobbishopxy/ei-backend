@@ -4,6 +4,8 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
 
+import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
+
 import scala.concurrent.ExecutionContextExecutor
 import scala.io.StdIn
 
@@ -17,10 +19,11 @@ object Server extends App {
   implicit val system: ActorSystem = ActorSystem("Server")
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
 
-  val route =
+  val route = cors() {
     concat(
       gridLayoutRoute
     )
+  }
 
   val (host, port) = ("localhost", 2020)
   val bindFuture = Http().bindAndHandle(route, host, port)

@@ -20,7 +20,7 @@ import scala.concurrent.Future
  */
 object Repo {
 
-  case class Coordinate(i: Int, x: Int, y: Int, h: Int, w: Int)
+  case class Coordinate(i: String, x: Int, y: Int, h: Int, w: Int)
   case class Content(title: String,
                      @BsonProperty("type") contentType: String,
                      hyperLink: String)

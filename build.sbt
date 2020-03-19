@@ -10,6 +10,7 @@ val h2V = "1.4.196"
 val pgV = "42.2.9"
 val slickV = "3.3.2"
 val mongoV = "2.8.0"
+val corsV = "0.4.2"
 
 lazy val root = (project in file(".")).
   settings(
@@ -29,6 +30,8 @@ lazy val root = (project in file(".")).
       "org.postgresql" % "postgresql" % pgV,
       "com.typesafe.slick" %% "slick" % slickV,
       "org.mongodb.scala" %% "mongo-scala-driver" % mongoV,
+
+      "ch.megard" %% "akka-http-cors" % corsV,
     )
   )
 
