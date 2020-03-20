@@ -7,7 +7,6 @@ import akka.http.scaladsl.server.Directives._
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 
 import scala.concurrent.ExecutionContextExecutor
-import scala.io.StdIn
 
 /**
  * Created by Jacob Xie on 3/12/2020
@@ -25,13 +24,12 @@ object Server extends App {
     )
   }
 
-  val (host, port) = ("localhost", 2020)
+  val (host, port) = ("0.0.0.0", 2020)
   val bindFuture = Http().bindAndHandle(route, host, port)
 
-  println(s"Server online at http://$host:$port/\nPress RETURN to stop...")
-  StdIn.readLine()
-  bindFuture
-    .flatMap(_.unbind())
-    .onComplete(_ => system.terminate())
+  bindFuture.failed.foreach {ex =>
+    println(ex, s"Failed to bind to $host, $port")
+  }
 
+  println(s"Server online at http://$host:$port/")
 }

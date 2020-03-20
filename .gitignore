@@ -19,7 +19,7 @@ build/
 
 #general
 *.class
-*.env
+#*.env
 
 null
 !project/build.properties

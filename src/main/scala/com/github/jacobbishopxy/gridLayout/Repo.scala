@@ -22,7 +22,7 @@ object Repo {
 
   case class Coordinate(i: String, x: Int, y: Int, h: Int, w: Int)
   case class Content(title: String,
-                     @BsonProperty("type") contentType: String,
+                     contentType: String,
                      hyperLink: String)
   case class GridModel(coordinate: Coordinate, content: Content)
 

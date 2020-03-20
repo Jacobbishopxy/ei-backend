@@ -14,27 +14,28 @@ object Routing {
   import com.github.jacobbishopxy.gridLayout.Repo._
 
   val route: Route =
-    concat(
-      path("grid-layout-all") {
-        complete(fetchAll())
-      },
-      path("grid-layout") {
-        concat(
-          get {
-            parameter(Symbol("id").as[String]) { id =>
-              val result = fetchItem(id)
-              complete(result)
-            }
-          },
-          post {
-            entity(as[GridLayout]) { gl =>
-              onSuccess(upsertItem(gl)) { res =>
-                complete((StatusCodes.Created, res.toString))
+    pathPrefix("ei") {
+      concat(
+        path("grid-layout-all") {
+          complete(fetchAll())
+        },
+        path("grid-layout") {
+          concat(
+            get {
+              parameter(Symbol("id").as[String]) { id =>
+                val result = fetchItem(id)
+                complete(result)
+              }
+            },
+            post {
+              entity(as[GridLayout]) { gl =>
+                onSuccess(upsertItem(gl)) { res =>
+                  complete((StatusCodes.Created, res.toString))
+                }
               }
             }
-          }
-        )
-      }
-    )
-
+          )
+        }
+      )
+    }
 }
