@@ -26,7 +26,7 @@ object Repo {
                      hyperLink: String)
   case class GridModel(coordinate: Coordinate, content: Content)
 
-  case class GridLayout(@BsonProperty("_id") id: String, layouts: Seq[GridModel])
+  case class GridLayout(panel: String, layouts: Seq[GridModel])
 
   val codecRegistry: CodecRegistry =
     fromRegistries(fromProviders(
@@ -52,13 +52,13 @@ object Repo {
 
   def fetchAll(): Future[Seq[GridLayout]] = collection.find().toFuture()
 
-  def fetchItem(id: String): Future[GridLayout] =
-    collection.find(equal("_id", id)).first().toFuture()
+  def fetchItem(panel: String): Future[GridLayout] =
+    collection.find(equal("panel", panel)).first().toFuture()
 
   def updateItem(gl: GridLayout): Future[UpdateResult] =
-    collection.replaceOne(equal("_id", gl.id), gl).toFuture()
+    collection.replaceOne(equal("panel", gl.panel), gl).toFuture()
 
   def upsertItem(gl: GridLayout): Future[UpdateResult] =
-    collection.replaceOne(equal("_id", gl.id), gl, ReplaceOptions().upsert(true)).toFuture()
+    collection.replaceOne(equal("panel", gl.panel), gl, ReplaceOptions().upsert(true)).toFuture()
 
 }

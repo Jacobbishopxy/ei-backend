@@ -22,7 +22,7 @@ object Routing {
         path("grid-layout") {
           concat(
             get {
-              parameter(Symbol("id").as[String]) { id =>
+              parameter(Symbol("panel").as[String]) { id =>
                 val result = fetchItem(id)
                 complete(result)
               }
