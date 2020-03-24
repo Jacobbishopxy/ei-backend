@@ -1,11 +1,11 @@
 
-import com.mongodb.client.model.{Filters, ValidationOptions}
 import com.typesafe.config.ConfigFactory
 import org.bson.BsonType
 import org.mongodb.scala._
 import org.mongodb.scala.bson.codecs.Macros._
 import org.mongodb.scala.bson.codecs.DEFAULT_CODEC_REGISTRY
 import org.mongodb.scala.bson.annotations.BsonProperty
+import org.mongodb.scala.model.{Filters, ValidationOptions}
 import org.bson.codecs.configuration.CodecRegistries.{fromProviders, fromRegistries}
 import org.bson.codecs.configuration.CodecRegistry
 import org.bson.conversions.Bson
@@ -76,7 +76,7 @@ object Repo {
   val validationOptions: ValidationOptions = new ValidationOptions().validator(validator)
 
   def createUserCollection(colName: String, db: MongoDatabase): Future[Completed] = {
-    val co = new CreateCollectionOptions().validationOptions(validationOptions)
+    val co = CreateCollectionOptions().validationOptions(validationOptions)
     db.createCollection(colName, co).toFuture()
   }
 }

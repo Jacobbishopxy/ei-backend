@@ -4,7 +4,6 @@ import com.typesafe.config.{Config, ConfigFactory}
 import org.mongodb.scala._
 import org.mongodb.scala.bson.codecs.Macros._
 import org.mongodb.scala.bson.codecs.DEFAULT_CODEC_REGISTRY
-import org.mongodb.scala.bson.annotations.BsonProperty
 import org.mongodb.scala.model.Filters._
 import org.mongodb.scala.model.ReplaceOptions
 import org.bson.codecs.configuration.CodecRegistries.{fromProviders, fromRegistries}
