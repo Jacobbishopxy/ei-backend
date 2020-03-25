@@ -1,5 +1,5 @@
 
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{Config, ConfigFactory}
 import org.bson.BsonType
 import org.mongodb.scala._
 import org.mongodb.scala.bson.codecs.Macros._
@@ -19,14 +19,26 @@ import scala.concurrent.duration._
  */
 object DevMongo extends App {
 
+  /**
+   * This demo shows how to insert & query typed data (using `codecRegistry`)
+   */
+
   import Repo._
 
-  val config = ConfigFactory.load.getConfig("ei-backend")
-  val mongoUrl = config.getString("mongo.url")
+  // ADT
+  final case class Cord(x: Int, y: Int)
+  final case class InfoDB(@BsonProperty("_id") id: Int,
+                          @BsonProperty("name") dbName: String,
+                          @BsonProperty("type") dbType: String,
+                          count: Int,
+                          info: Cord)
 
-  val mongoClient = MongoClient(mongoUrl)
-  val database: MongoDatabase = mongoClient.getDatabase("dev").withCodecRegistry(codecRegistry)
-  val collection: MongoCollection[InfoDB] = database.getCollection("test")
+  val codecRegistry: CodecRegistry =
+    fromRegistries(fromProviders(classOf[Cord], classOf[InfoDB]), DEFAULT_CODEC_REGISTRY)
+
+  val db: MongoDatabase = database.withCodecRegistry(codecRegistry)
+  val collection: MongoCollection[InfoDB] = db.getCollection("test")
+
 
 
   val infoDB = InfoDB(1, "Postgres", "database", 2, Cord(233, 135)) // fake data
@@ -39,22 +51,15 @@ object DevMongo extends App {
 
 }
 
+object DevMongo1 extends App {
 
-object Repo {
+  /**
+   * This demo shows how to create a collection with validator
+   */
 
-  final case class Cord(x: Int, y: Int)
+  import Repo._
 
-  final case class InfoDB(@BsonProperty("_id") id: Int,
-                          @BsonProperty("name") dbName: String,
-                          @BsonProperty("type") dbType: String,
-                          count: Int,
-                          info: Cord)
-
-  val codecRegistry: CodecRegistry =
-    fromRegistries(fromProviders(classOf[Cord], classOf[InfoDB]), DEFAULT_CODEC_REGISTRY)
-
-
-  // mongo create collection with validation options
+  // mongo create collection with validation options (written in Mongo shell)
   /*
   {
       "validator": { "$and":
@@ -67,17 +72,59 @@ object Repo {
    }
    */
 
+  // collection data types' restriction
   val username: Bson = Filters.`type`("username", BsonType.STRING)
   val email: Bson = Filters.regex("email", "@*.*$")
   val password: Bson = Filters.`type`("password", BsonType.STRING)
 
   val validator: Bson = Filters.and(username, email, password)
-
   val validationOptions: ValidationOptions = new ValidationOptions().validator(validator)
 
   def createUserCollection(colName: String, db: MongoDatabase): Future[Completed] = {
     val co = CreateCollectionOptions().validationOptions(validationOptions)
     db.createCollection(colName, co).toFuture()
   }
+
+  val res = createUserCollection("user", database)
+  Await.result(res, 10.seconds)
+
+}
+
+object DevMongo2 extends App {
+
+  /**
+   * This demo shows how to modify a collection's validator
+   */
+
+  // todo: add/drop single "column" validation
+
+  import Repo._
+
+
+  def showCollectionInfo(colName: String): Future[Seq[Document]] =
+    database.listCollections().filter(Filters.eq("name", colName)).toFuture()
+
+  val showCI = Await.result(showCollectionInfo("user"), 10.seconds)
+  println(showCI.head.toList(2))
+
+
+  val modifyValidatorDoc = Document(
+    "collMod" -> "user",
+    "validator" -> Document("gender" -> Document("$type" -> 2))
+  )
+
+  val res = database.runCommand(modifyValidatorDoc).toFuture()
+  Await.result(res, 10.seconds)
+
+}
+
+
+object Repo {
+
+  val config: Config = ConfigFactory.load.getConfig("ei-backend")
+  val mongoUrl: String = config.getString("mongo.url")
+  val mongoClient: MongoClient = MongoClient(mongoUrl)
+  val database: MongoDatabase = mongoClient.getDatabase("dev")
+
 }
 
