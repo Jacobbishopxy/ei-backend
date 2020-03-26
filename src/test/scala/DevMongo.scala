@@ -138,10 +138,10 @@ object DevMongo3 extends App {
   import spray.json._
   import spray.json.DefaultJsonProtocol._
 
-  case class ValidatorMap(validator: Map[String, Map[String, Int]])
+  case class RawValidatorMap(validator: Map[String, Map[String, Int]])
 
   // get current validator
-  def extractValidator(collectionName: String): Future[Map[String, Int]] = {
+  def getValidator(collectionName: String): Future[Map[String, Int]] = {
     import scala.concurrent.ExecutionContext.Implicits.global
 
     val fut = database
@@ -151,17 +151,56 @@ object DevMongo3 extends App {
 
     fut
       .map(r => r.head.toList(2)._2.asDocument()) // validator is the third element in the list
-      .map(r => r.asDocument().toJson.parseJson.convertTo(jsonFormat1(ValidatorMap))) // Bson to ValidatorMap
+      .map(r => r.asDocument().toJson.parseJson.convertTo(jsonFormat1(RawValidatorMap))) // Bson to ValidatorMap
       .map(r => r.validator.map {
         case (k, v) => k -> v.getOrElse("$type", 0)
       })
   }
 
-  val curValidator = Await.result(extractValidator("user"), 10.seconds)
+  val curValidator = Await.result(getValidator("user"), 10.seconds)
   println(curValidator)
 
-  // todo: function accepts add/delete new "element" in validator
+  // pure
+  def genModifyValidatorDoc(collectionName: String, validatorMap: Map[String, Int]): Document = {
+    val vld = validatorMap.map {
+      case (k, v) => k -> Document("$type" -> v)
+    }
 
+    Document(
+      "collMod" -> collectionName,
+      "validator" -> Document(vld)
+    )
+  }
+
+  trait ValidatorAction
+  case class AddEle(name: String, $type: Int) extends ValidatorAction
+  case class DelEle(name: String) extends ValidatorAction
+
+  // pure
+  def validatorMapUpdate(currentValidator: Map[String, Int], action: ValidatorAction): Map[String, Int] =
+    action match {
+      case AddEle(n, t) =>
+        currentValidator ++ Map(n -> t)
+      case DelEle(n) =>
+        currentValidator - n
+    }
+
+  println(validatorMapUpdate(curValidator, AddEle("career", 2)))
+
+
+  // side effect
+  def modifyValidator(collectionName: String, action: ValidatorAction): Future[Document] = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+
+    getValidator(collectionName)
+      .map(validatorMapUpdate(_, action))
+      .map(genModifyValidatorDoc(collectionName, _))
+      .flatMap(database.runCommand(_).toFuture())
+  }
+
+
+  val res = Await.result(modifyValidator("user", AddEle("career", 2)), 10.seconds)
+  println(res)
 }
 
 
