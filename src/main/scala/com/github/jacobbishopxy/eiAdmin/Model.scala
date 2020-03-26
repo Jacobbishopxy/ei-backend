@@ -9,12 +9,13 @@ import spray.json.RootJsonFormat
 object Model {
 
   final case class Col(name: String,
-                       colType: String,
-                       isKey: Boolean = false,
+                       alias: String,
+                       colType: Int,
+                       isIndex: Boolean = false,
                        description: Option[String] = None)
   final case class Cols(name: String, cols: List[Col])
 
-  implicit val colFormat: RootJsonFormat[Col] = jsonFormat4(Col)
+  implicit val colFormat: RootJsonFormat[Col] = jsonFormat5(Col)
   implicit val colsFormat: RootJsonFormat[Cols] = jsonFormat2(Cols)
 
 

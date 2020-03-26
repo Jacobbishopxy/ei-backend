@@ -2,10 +2,10 @@ package com.github.jacobbishopxy.eiAdmin
 
 import com.github.jacobbishopxy.MongoRepo
 import com.github.jacobbishopxy.eiAdmin.Model.Cols
-import org.mongodb.scala.model.{CreateCollectionOptions, Filters, IndexModel, Indexes, ValidationOptions}
-import org.bson.BsonType
+
+import org.mongodb.scala.Document
+import org.mongodb.scala.model._
 import org.bson.conversions.Bson
-import org.mongodb.scala.{Document, FindObservable}
 
 import scala.concurrent.Future
 
@@ -56,9 +56,9 @@ class Repo(val conn: String, val dbName: String) extends MongoRepo {
     cf.toFuture()
   }
 
-  def fetchDataColumns() = ???
+  def getCollectionInfos(collectionName: String): Future[Seq[Document]] =
+    database.listCollections().filter(Filters.eq("name", collectionName)).toFuture()
 
-  def verifyData() = ???
 
   def insertData() = ???
 
@@ -70,17 +70,11 @@ class Repo(val conn: String, val dbName: String) extends MongoRepo {
 
 object Repo {
 
-  private def colTypeMatch(colType: String): BsonType = colType match {
-    case "String" => BsonType.STRING
-    case "Double" => BsonType.DOUBLE
-    case "Decimal" => BsonType.DECIMAL128
-    case "Int" => BsonType.INT64
-    case _ => throw new RuntimeException("unmatched item")
-  }
+  import com.github.jacobbishopxy.Utilities.intToBsonType
 
   private def createValidator(cols: Cols): ValidationOptions = {
     val bsonList = cols.cols.foldLeft(List.empty[Bson]) {
-      case (l, i) => l :+ Filters.`type`(i.name, colTypeMatch(i.colType))
+      case (l, i) => l :+ Filters.`type`(i.name, intToBsonType(i.colType))
     }
     val bson = Filters.and(bsonList: _*)
     new ValidationOptions().validator(bson)
