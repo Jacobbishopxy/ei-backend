@@ -5,11 +5,12 @@ import org.mongodb.scala._
 import org.mongodb.scala.bson.codecs.Macros._
 import org.mongodb.scala.bson.codecs.DEFAULT_CODEC_REGISTRY
 import org.mongodb.scala.bson.annotations.BsonProperty
-import org.mongodb.scala.model.{Filters, ValidationOptions}
+import org.mongodb.scala.model.{Filters, Updates, ValidationOptions}
 import org.bson.codecs.configuration.CodecRegistries.{fromProviders, fromRegistries}
 import org.bson.codecs.configuration.CodecRegistry
 import org.bson.conversions.Bson
 import org.mongodb.scala.model.CreateCollectionOptions
+import org.mongodb.scala.result.DeleteResult
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 
@@ -58,7 +59,7 @@ object DevMongo extends App {
 object DevMongo1 extends App {
 
   /**
-   * This demo shows how to insert & query untyped data
+   * This demo shows how to insert, query & update untyped data
    */
 
   import Repo._
@@ -85,7 +86,6 @@ object DevMongo1 extends App {
 
   val collection = database.getCollection("user")
 
-
   // insertOne: make sure untyped data is a json string
   val foo = Map("username" -> "J", "gender" -> "M", "career" -> "Engineer", "rank" -> 10).toJson.toString
 
@@ -107,6 +107,22 @@ object DevMongo1 extends App {
   val res: Seq[Document] = Await.result(que, 10.seconds)
 
   println(extractJsonData(res))
+
+  // delete
+  val del1: Future[DeleteResult] = collection.deleteOne(
+    Filters.and(Filters.eq("username", "J"), Filters.eq("rank", 10))
+  ).toFuture()
+  println(Await.result(del1, 10.seconds))
+
+  val del2 = collection.deleteMany(Filters.eq("username", "J")).toFuture()
+  println(Await.result(del2, 10.seconds))
+
+  // update
+  val upd1 = collection.updateOne(
+    Filters.eq("username", "MZ"), Updates.set("rank", 2)
+  ).toFuture()
+  println(Await.result(upd1, 10.seconds))
+
 }
 
 object DevMongo2 extends App {
