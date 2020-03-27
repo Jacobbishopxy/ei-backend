@@ -10,6 +10,8 @@ import org.bson.codecs.configuration.CodecRegistries.{fromProviders, fromRegistr
 import org.bson.codecs.configuration.CodecRegistry
 import org.bson.conversions.Bson
 import org.mongodb.scala.model.CreateCollectionOptions
+import spray.json._
+import spray.json.DefaultJsonProtocol._
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
@@ -48,9 +50,66 @@ object DevMongo extends App {
   val res = Await.result(collection.find().toFuture(), 10.seconds) // read all
   println(res)
 
+  val que = Await.result(collection.find(Filters.eq("name", "Postgres")).toFuture(), 10.seconds)
+  println(que)
+
 }
 
 object DevMongo1 extends App {
+
+  /**
+   * This demo shows how to insert & query untyped data
+   */
+
+  import Repo._
+
+  implicit object AnyJsonFormat extends JsonFormat[Any] {
+    override def write(value: Any): JsValue = value match {
+      case n: Int => JsNumber(n)
+      case s: String => JsString(s)
+      case b: Boolean if b => JsTrue
+      case b: Boolean if !b => JsFalse
+      case _ => throw new RuntimeException(s"AnyJsonFormat write failed: ${value.toString}")
+    }
+    override def read(value: JsValue): Any = value match {
+      case JsNumber(n) => n.intValue
+      case JsString(s) => s
+      case JsTrue => true
+      case JsFalse => false
+      case _ => throw new RuntimeException(s"AnyJsonFormat read failed: ${value.toString}")
+    }
+  }
+
+  def extractJsonData(d: Seq[Document]) =
+    d.map(_.toJson)
+
+  val collection = database.getCollection("user")
+
+
+  // insertOne: make sure untyped data is a json string
+  val foo = Map("username" -> "J", "gender" -> "M", "career" -> "Engineer", "rank" -> 10).toJson.toString
+
+  val fut = collection.insertOne(Document(foo)).toFuture()
+  val insertExe = Await.result(fut, 10.seconds)
+  println(insertExe)
+
+  // insertMany: make sure untyped data is a seq of json string
+  val bar = Seq(
+    Map("username" -> "MZ", "gender" -> "M", "career" -> "Data Scientist"),
+    Map("username" -> "Sam", "gender" -> "M", "career" -> "Researcher"),
+  ).map(_.toJson.toString).map(Document(_))
+
+  val fut1 = collection.insertMany(bar).toFuture()
+  val insertExe1 = Await.result(fut1, 10.seconds)
+  println(insertExe1)
+
+  val que: Future[Seq[Document]] = collection.find(Filters.eq("username", "J")).toFuture()
+  val res: Seq[Document] = Await.result(que, 10.seconds)
+
+  println(extractJsonData(res))
+}
+
+object DevMongo2 extends App {
 
   /**
    * This demo shows how to create a collection with validator
@@ -89,7 +148,7 @@ object DevMongo1 extends App {
 
 }
 
-object DevMongo2 extends App {
+object DevMongo3 extends App {
 
   /**
    * This demo shows how to modify a collection's validator
@@ -126,7 +185,7 @@ object DevMongo2 extends App {
 
 }
 
-object DevMongo3 extends App {
+object DevMongo4 extends App {
 
   /**
    * This demo shows using a wrapped function to modify a collection's validator
