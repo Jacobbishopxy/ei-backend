@@ -5,12 +5,11 @@ import org.mongodb.scala._
 import org.mongodb.scala.bson.codecs.Macros._
 import org.mongodb.scala.bson.codecs.DEFAULT_CODEC_REGISTRY
 import org.mongodb.scala.bson.annotations.BsonProperty
-import org.mongodb.scala.model.{Filters, Updates, ValidationOptions}
+import org.mongodb.scala.model.{Filters, Updates, ValidationOptions, CreateCollectionOptions}
+import org.mongodb.scala.result.DeleteResult
 import org.bson.codecs.configuration.CodecRegistries.{fromProviders, fromRegistries}
 import org.bson.codecs.configuration.CodecRegistry
 import org.bson.conversions.Bson
-import org.mongodb.scala.model.CreateCollectionOptions
-import org.mongodb.scala.result.DeleteResult
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 
@@ -20,13 +19,11 @@ import scala.concurrent.duration._
 /**
  * Created by Jacob Xie on 3/16/2020
  */
-object DevMongo extends App {
+object DevMongo extends App with DevMongoRepo {
 
   /**
    * This demo shows how to insert & query typed data (using `codecRegistry`)
    */
-
-  import Repo._
 
   // ADT
   final case class Cord(x: Int, y: Int)
@@ -56,13 +53,11 @@ object DevMongo extends App {
 
 }
 
-object DevMongo1 extends App {
+object DevMongo1 extends App with DevMongoRepo {
 
   /**
    * This demo shows how to insert, query & update untyped data
    */
-
-  import Repo._
 
   implicit object AnyJsonFormat extends JsonFormat[Any] {
     override def write(value: Any): JsValue = value match {
@@ -81,7 +76,7 @@ object DevMongo1 extends App {
     }
   }
 
-  def extractJsonData(d: Seq[Document]) =
+  def extractJsonData(d: Seq[Document]): Seq[String] =
     d.map(_.toJson)
 
   val collection = database.getCollection("user")
@@ -103,6 +98,7 @@ object DevMongo1 extends App {
   val insertExe1 = Await.result(fut1, 10.seconds)
   println(insertExe1)
 
+  // query with filter option
   val que: Future[Seq[Document]] = collection.find(Filters.eq("username", "J")).toFuture()
   val res: Seq[Document] = Await.result(que, 10.seconds)
 
@@ -125,13 +121,11 @@ object DevMongo1 extends App {
 
 }
 
-object DevMongo2 extends App {
+object DevMongo2 extends App with DevMongoRepo {
 
   /**
    * This demo shows how to create a collection with validator
    */
-
-  import Repo._
 
   // mongo create collection with validation options (written in Mongo shell)
   /*
@@ -164,13 +158,11 @@ object DevMongo2 extends App {
 
 }
 
-object DevMongo3 extends App {
+object DevMongo3 extends App with DevMongoRepo {
 
   /**
    * This demo shows how to modify a collection's validator
    */
-
-  import Repo._
 
   // get current validator
   def showCollectionInfo(colName: String): Future[Seq[Document]] =
@@ -201,17 +193,11 @@ object DevMongo3 extends App {
 
 }
 
-object DevMongo4 extends App {
+object DevMongo4 extends App with DevMongoRepo {
 
   /**
    * This demo shows using a wrapped function to modify a collection's validator
    */
-
-  import Repo._
-  import com.github.jacobbishopxy.Utilities._
-
-  import spray.json._
-  import spray.json.DefaultJsonProtocol._
 
   case class RawValidatorMap(validator: Map[String, Map[String, Int]])
 
@@ -279,7 +265,7 @@ object DevMongo4 extends App {
 }
 
 
-object Repo {
+trait DevMongoRepo {
 
   val config: Config = ConfigFactory.load.getConfig("ei-backend")
   val mongoUrl: String = config.getString("mongo.url")
