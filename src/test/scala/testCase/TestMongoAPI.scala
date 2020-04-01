@@ -12,10 +12,10 @@ import scala.concurrent.duration._
  */
 object TestMongoAPI extends App with TestMongoAPIRepo {
 
-  import com.github.jacobbishopxy.eiAdmin._
-  import Model._
+  import com.github.jacobbishopxy.MongoModel._
+  import com.github.jacobbishopxy.MongoLoader
 
-  val repo = new Repo(mongoUrl, "dev")
+  val repo = new MongoLoader(mongoUrl, "dev")
 
 
   val filter = AND(
