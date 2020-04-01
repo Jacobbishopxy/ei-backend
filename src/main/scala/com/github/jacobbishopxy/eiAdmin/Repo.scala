@@ -1,10 +1,10 @@
 package com.github.jacobbishopxy.eiAdmin
 
-import com.github.jacobbishopxy.MongoRepo
-
+import com.github.jacobbishopxy.MongoConn
 import org.mongodb.scala._
+import org.mongodb.scala.bson.BsonDocument
 import org.mongodb.scala.model._
-import org.bson.conversions.Bson
+import org.mongodb.scala.bson.conversions.Bson
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 
@@ -13,7 +13,7 @@ import scala.concurrent.Future
 /**
  * Created by Jacob Xie on 3/23/2020
  */
-class Repo(val conn: String, val dbName: String) extends MongoRepo {
+class Repo(val conn: String, val dbName: String) extends MongoConn {
 
   import Model._
   import Repo._
@@ -38,52 +38,20 @@ class Repo(val conn: String, val dbName: String) extends MongoRepo {
   }
 
   /**
-   * get all data with limit option
+   * get all data with conditions
    *
    * @param collectionName : String
-   * @param limit          : Option[Int]
+   * @param queryContent   : [[QueryContent]]
    * @return
    */
-  def fetchData(collectionName: String,
-                limit: Option[Int] = None): Future[Seq[Document]] = {
-    val cf = collection(collectionName).find()
-    val res = limit match {
-      case None => cf
-      case Some(l) => cf.limit(l)
+  def fetchData(collectionName: String, queryContent: QueryContent): Future[Seq[Document]] = {
+    val filter = queryContent.filter match {
+      case Some(v) => getFilter(v)
+      case None => BsonDocument()
     }
+    val cf = collection(collectionName).find(filter)
+    val res = queryContent.limit.fold(cf) { i => cf.limit(i) }
     res.toFuture()
-  }
-
-  /**
-   * get data filter by name equal
-   *
-   * @param collectionName : String
-   * @param namesEqual     : List[(String, Any)]
-   * @return
-   */
-  def fetchDataByName(collectionName: String,
-                      namesEqual: List[(String, Any)]): Future[Seq[Document]] = {
-    val cf = collection(collectionName)
-      .find(Filters.or(namesEqual.map {
-        case (k, v) => Filters.equal(k, v)
-      }: _*))
-    cf.toFuture()
-  }
-
-  /**
-   * get data filter by name range
-   *
-   * @param collectionName : String
-   * @param gte            : (String, Any)
-   * @param lte            : (String, Any)
-   * @return
-   */
-  def fetchDataByRange(collectionName: String,
-                       gte: (String, Any),
-                       lte: (String, Any)): Future[Seq[Document]] = {
-    val cf = collection(collectionName)
-      .find(Filters.and(Filters.gte(gte._1, gte._2), Filters.lte(lte._1, lte._2)))
-    cf.toFuture()
   }
 
   /**
@@ -203,6 +171,41 @@ object Repo {
       "collMod" -> collectionName,
       "validator" -> Document(vld)
     )
+  }
+
+  private def jsValueConvert(d: JsValue): Any = d match {
+    case JsString(v) => v
+    case JsNumber(v) => v.toDouble
+    case JsTrue => true
+    case JsFalse => false
+    case JsNull => None
+    case _ => throw new RuntimeException(s"Invalid JSON format: ${d.toString}")
+  }
+
+  private def extractFilter(name: String, filterOptions: FilterOptions): Bson = {
+
+    val eq = filterOptions.eq.fold(Option.empty[Bson]) { i => Some(Filters.eq(name, jsValueConvert(i))) }
+    val gt = filterOptions.gt.fold(Option.empty[Bson]) { i => Some(Filters.gt(name, jsValueConvert(i))) }
+    val lt = filterOptions.lt.fold(Option.empty[Bson]) { i => Some(Filters.lt(name, jsValueConvert(i))) }
+    val gte = filterOptions.gte.fold(Option.empty[Bson]) { i => Some(Filters.gte(name, jsValueConvert(i))) }
+    val lte = filterOptions.lte.fold(Option.empty[Bson]) { i => Some(Filters.lte(name, jsValueConvert(i))) }
+
+    val gatheredFilters = List(eq, gt, lt, gte, lte).foldLeft(List.empty[Bson]) {
+      case (acc, ob) => ob match {
+        case None => acc
+        case Some(v) => acc :+ v
+      }
+    }
+    Filters.and(gatheredFilters: _*)
+  }
+
+  private def getFilter(filter: Conjunctions): Bson = filter match {
+    case AND(and) =>
+      val res = and.map { case (name, filterOptions) => extractFilter(name, filterOptions) }.toList
+      Filters.and(res: _*)
+    case OR(or) =>
+      val res = or.map { case (name, filterOptions) => extractFilter(name, filterOptions) }.toList
+      Filters.or(res: _*)
   }
 
 

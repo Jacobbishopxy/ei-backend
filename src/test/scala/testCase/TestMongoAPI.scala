@@ -1,0 +1,41 @@
+package testCase
+
+import com.typesafe.config.{Config, ConfigFactory}
+import org.mongodb.scala.Document
+import spray.json._
+
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration._
+
+/**
+ * Created by Jacob Xie on 4/1/2020
+ */
+object TestMongoAPI extends App with TestMongoAPIRepo {
+
+  import com.github.jacobbishopxy.eiAdmin._
+  import Model._
+
+  val repo = new Repo(mongoUrl, "dev")
+
+
+  val filter = AND(
+    Map(
+      "username" -> FilterOptions(Some(JsString("MZ")), None, None, None, None)
+    )
+  )
+  val conditions = QueryContent(Some(10), Some(filter))
+
+  val foo: Future[Seq[Document]] = repo.fetchData("user", conditions)
+
+  val res = Await.result(foo, 10.seconds)
+  println(res)
+
+}
+
+
+trait TestMongoAPIRepo {
+
+  val config: Config = ConfigFactory.load.getConfig("ei-backend")
+  val mongoUrl: String = config.getString("mongo.url")
+
+}

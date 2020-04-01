@@ -7,7 +7,7 @@ import scala.concurrent.Future
 /**
  * Created by Jacob Xie on 3/23/2020
  */
-trait MongoRepo {
+trait MongoConn {
   val conn: String
   val dbName: String
 
