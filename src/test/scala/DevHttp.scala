@@ -128,7 +128,7 @@ trait DevHttpMongo {
     implicit val queryContentFormat: RootJsonFormat[QueryContent] = jsonFormat2(QueryContent)
   }
 
-  private def jsValueConvert(d: JsValue) = d match {
+  private def jsValueConvert(d: JsValue): Any = d match {
     case JsString(v) => v
     case JsNumber(v) => v.toDouble
     case JsTrue => true

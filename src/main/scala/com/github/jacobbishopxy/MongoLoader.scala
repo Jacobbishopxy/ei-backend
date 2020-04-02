@@ -4,6 +4,7 @@ import org.mongodb.scala.bson.BsonDocument
 import org.mongodb.scala.{Completed, Document, MongoDatabase}
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model.{CreateCollectionOptions, Filters, IndexModel, IndexOptions, Indexes, ValidationOptions}
+import org.mongodb.scala.result.DeleteResult
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 
@@ -30,7 +31,7 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
     import scala.concurrent.ExecutionContext.Implicits.global
 
     val co = CreateCollectionOptions().validationOptions(createValidator(cols))
-    val createColl = database.createCollection(cols.name, co).toFuture()
+    val createColl = database.createCollection(cols.collectionName, co).toFuture()
     val createIdx = createIndex(cols)
 
     createColl.flatMap(_ => createIdx)
@@ -49,13 +50,13 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
         c.indexOption match {
           case None => acc
           case Some(io) =>
-            val ia = if (io.ascending) Indexes.ascending(c.name) else Indexes.descending(c.name)
+            val ia = if (io.ascending) Indexes.ascending(c.fieldName) else Indexes.descending(c.fieldName)
             acc :+ ia
         }
     }
     val idxOpt = IndexOptions().background(false).unique(true)
 
-    collection(cols.name).createIndex(Indexes.compoundIndex(idx: _*), idxOpt).toFuture()
+    collection(cols.collectionName).createIndex(Indexes.compoundIndex(idx: _*), idxOpt).toFuture()
   }
 
   /**
@@ -72,6 +73,12 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
 
   // todo: public method -- modify indexes
 
+  private def getFilterFromQueryContent(queryContent: QueryContent): Bson =
+    queryContent.filter match {
+      case Some(v) => getFilter(v)
+      case None => BsonDocument()
+    }
+
   /**
    * get all data with conditions
    *
@@ -80,10 +87,7 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
    * @return
    */
   def fetchData(collectionName: String, queryContent: QueryContent): Future[Seq[Document]] = {
-    val filter = queryContent.filter match {
-      case Some(v) => getFilter(v)
-      case None => BsonDocument()
-    }
+    val filter = getFilterFromQueryContent(queryContent)
     val cf = collection(collectionName).find(filter)
     val res = queryContent.limit.fold(cf) { i => cf.limit(i) }
     res.toFuture()
@@ -113,20 +117,30 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
 
   def updateData(collectionName: String) = ???
 
-  def deleteData(collectionName: String) = ???
+  /**
+   * delete matched data from collection
+   *
+   * @param collectionName : String
+   * @param queryContent   : [[QueryContent]]
+   * @return
+   */
+  def deleteData(collectionName: String, queryContent: QueryContent): Future[DeleteResult] = {
+    val filter = getFilterFromQueryContent(queryContent)
+    collection(collectionName).deleteMany(filter).toFuture()
+  }
 
   /**
    * modify collection's validator
    *
-   * @param collectionName : String
-   * @param action         : [[ValidatorActions]]
+   * @param collectionName   : String
+   * @param validatorContent : [[ValidatorActions]]
    * @return
    */
-  def modifyValidator(collectionName: String, action: ValidatorActions): Future[Document] = {
+  def modifyValidator(collectionName: String, validatorContent: ValidatorContent): Future[Document] = {
     import scala.concurrent.ExecutionContext.Implicits.global
 
     getValidatorMap(database, collectionName)
-      .map(validatorMapUpdate(_, action))
+      .map(validatorMapUpdate(_, validatorContent))
       .map(genModifyValidatorDoc(collectionName, _))
       .flatMap(database.runCommand(_).toFuture())
   }
@@ -148,7 +162,7 @@ object MongoLoader {
    */
   private def createValidator(cols: Cols): ValidationOptions = {
     val bsonList = cols.cols.foldLeft(List.empty[Bson]) {
-      case (l, i) => l :+ Filters.`type`(i.name, intToBsonType(i.colType))
+      case (l, i) => l :+ Filters.`type`(i.fieldName, intToBsonType(i.fieldType))
     }
     val bson = Filters.and(bsonList: _*)
     new ValidationOptions().validator(bson)
@@ -180,14 +194,16 @@ object MongoLoader {
   /**
    *
    * @param currentValidatorMap : Map[String, Int]
-   * @param action              : [[ValidatorActions]]
+   * @param validatorContent    : [[ValidatorContent]]
    * @return
    */
   private def validatorMapUpdate(currentValidatorMap: Map[String, Int],
-                                 action: ValidatorActions): Map[String, Int] =
-    action match {
-      case AddEle(n, t) => currentValidatorMap ++ Map(n -> t)
-      case DelEle(n) => currentValidatorMap - n
+                                 validatorContent: ValidatorContent): Map[String, Int] =
+    validatorContent.actions.foldLeft(currentValidatorMap) {
+      case (acc, a) => a match {
+        case AddEle(fn, na, ft, d) => acc ++ Map(fn -> ft)
+        case DelEle(fn) => acc - fn
+      }
     }
 
   /**
