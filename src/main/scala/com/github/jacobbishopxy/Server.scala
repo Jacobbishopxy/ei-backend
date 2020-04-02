@@ -14,20 +14,24 @@ import scala.concurrent.ExecutionContextExecutor
 object Server extends App {
 
   import gridLayout.Routing.{route => gridLayoutRoute}
+  import eiAdmin.Routing.{route => eiAdminRoute}
 
   implicit val system: ActorSystem = ActorSystem("Server")
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
 
   val route = cors() {
-    concat(
-      gridLayoutRoute
-    )
+    pathPrefix("ei") {
+      concat(
+        gridLayoutRoute,
+        eiAdminRoute
+      )
+    }
   }
 
   val (host, port) = ("0.0.0.0", 2020)
   val bindFuture = Http().bindAndHandle(route, host, port)
 
-  bindFuture.failed.foreach {ex =>
+  bindFuture.failed.foreach { ex =>
     println(ex, s"Failed to bind to $host, $port")
   }
 

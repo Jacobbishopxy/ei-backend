@@ -12,10 +12,12 @@ object MongoModel {
    * validator support
    */
 
+  final case class ColIdx(ascending: Boolean)
+
   final case class Col(name: String,
                        alias: String,
                        colType: Int,
-                       isIndex: Boolean = false,
+                       indexOption: Option[ColIdx] = None,
                        description: Option[String] = None)
   final case class Cols(name: String, cols: List[Col])
 
@@ -26,6 +28,7 @@ object MongoModel {
 
   trait ValidatorJsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
 
+    implicit val colIdxFormat: RootJsonFormat[ColIdx] = jsonFormat1(ColIdx)
     implicit val colFormat: RootJsonFormat[Col] = jsonFormat5(Col)
     implicit val colsFormat: RootJsonFormat[Cols] = jsonFormat2(Cols)
 

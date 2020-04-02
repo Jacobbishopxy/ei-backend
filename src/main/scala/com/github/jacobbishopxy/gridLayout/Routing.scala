@@ -14,7 +14,7 @@ object Routing {
   import com.github.jacobbishopxy.gridLayout.Repo._
 
   val route: Route =
-    pathPrefix("ei") {
+    pathPrefix("utils") {
       concat(
         path("grid-layout-all") {
           complete(fetchAll())
@@ -23,8 +23,7 @@ object Routing {
           concat(
             get {
               parameter(Symbol("panel").as[String]) { id =>
-                val result = fetchItem(id)
-                complete(result)
+                complete(fetchItem(id))
               }
             },
             post {

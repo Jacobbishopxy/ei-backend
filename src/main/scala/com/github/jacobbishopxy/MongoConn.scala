@@ -11,8 +11,8 @@ trait MongoConn {
   val conn: String
   val dbName: String
 
-  val mongoClient: MongoClient = MongoClient(conn)
-  val database: MongoDatabase = mongoClient.getDatabase(dbName)
+  lazy val mongoClient: MongoClient = MongoClient(conn)
+  lazy val database: MongoDatabase = mongoClient.getDatabase(dbName)
 
   def collection(name: String): MongoCollection[Document] =
     database.getCollection(name)

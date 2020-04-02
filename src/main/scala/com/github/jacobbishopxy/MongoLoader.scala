@@ -3,7 +3,7 @@ package com.github.jacobbishopxy
 import org.mongodb.scala.bson.BsonDocument
 import org.mongodb.scala.{Completed, Document, MongoDatabase}
 import org.mongodb.scala.bson.conversions.Bson
-import org.mongodb.scala.model.{CreateCollectionOptions, Filters, IndexModel, Indexes, ValidationOptions}
+import org.mongodb.scala.model.{CreateCollectionOptions, Filters, IndexModel, IndexOptions, Indexes, ValidationOptions}
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 
@@ -26,18 +26,51 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
    * @param cols : [[Cols]]
    * @return
    */
-  def createCollection(cols: Cols): Future[Seq[String]] = {
-
+  def createCollection(cols: Cols): Future[String] = {
     import scala.concurrent.ExecutionContext.Implicits.global
 
     val co = CreateCollectionOptions().validationOptions(createValidator(cols))
     val createColl = database.createCollection(cols.name, co).toFuture()
-
-    val idx = cols.cols.map(i => IndexModel(Indexes.ascending(i.name)))
-    val createIdx = collection(cols.name).createIndexes(idx).toFuture()
+    val createIdx = createIndex(cols)
 
     createColl.flatMap(_ => createIdx)
   }
+
+
+  /**
+   * create indexes for a collection
+   *
+   * @param cols : [[Cols]]
+   * @return
+   */
+  def createIndex(cols: Cols): Future[String] = {
+    val idx = cols.cols.foldLeft(List.empty[Bson]) {
+      case (acc, c) =>
+        c.indexOption match {
+          case None => acc
+          case Some(io) =>
+            val ia = if (io.ascending) Indexes.ascending(c.name) else Indexes.descending(c.name)
+            acc :+ ia
+        }
+    }
+    val idxOpt = IndexOptions().background(false).unique(true)
+
+    collection(cols.name).createIndex(Indexes.compoundIndex(idx: _*), idxOpt).toFuture()
+  }
+
+  /**
+   * show indexes for a collection
+   *
+   * @param collectionName : String
+   * @return
+   */
+  def getCollectionIndexes(collectionName: String): Future[Seq[String]] = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+
+    collection(collectionName).listIndexes().toFuture().map(_.map(_.toString))
+  }
+
+  // todo: public method -- modify indexes
 
   /**
    * get all data with conditions
