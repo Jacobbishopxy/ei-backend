@@ -1,4 +1,4 @@
-package com.github.jacobbishopxy.gridLayout
+package com.github.jacobbishopxy.eiGridLayout
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
@@ -11,7 +11,7 @@ import spray.json.DefaultJsonProtocol._
  */
 object Routing {
 
-  import com.github.jacobbishopxy.gridLayout.Repo._
+  import com.github.jacobbishopxy.eiGridLayout.Repo._
 
   val route: Route =
     pathPrefix("utils") {

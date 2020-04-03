@@ -1,6 +1,6 @@
 package testCase
 
-import com.github.jacobbishopxy.gridLayout.Repo
+import com.github.jacobbishopxy.eiGridLayout.Repo
 import org.mongodb.scala._
 
 import scala.concurrent.Await

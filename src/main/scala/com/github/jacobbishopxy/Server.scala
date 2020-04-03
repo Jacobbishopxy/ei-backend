@@ -13,7 +13,7 @@ import scala.concurrent.ExecutionContextExecutor
  */
 object Server extends App {
 
-  import gridLayout.Routing.{route => gridLayoutRoute}
+  import eiGridLayout.Routing.{route => gridLayoutRoute}
   import eiAdmin.Routing.{route => eiAdminRoute}
 
   implicit val system: ActorSystem = ActorSystem("Server")

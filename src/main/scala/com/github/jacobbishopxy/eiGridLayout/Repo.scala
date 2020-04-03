@@ -1,4 +1,4 @@
-package com.github.jacobbishopxy.gridLayout
+package com.github.jacobbishopxy.eiGridLayout
 
 import com.typesafe.config.{Config, ConfigFactory}
 import org.mongodb.scala._
