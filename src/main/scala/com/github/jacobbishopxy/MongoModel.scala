@@ -68,13 +68,27 @@ object MongoModel {
         case JsObject(fields) =>
           if (fields.contains("nameAlias"))
             AddEle(
-              fieldName = fields.get("fieldName").fold("")(_.toString),
-              nameAlias = fields.get("nameAlias").fold("")(_.toString),
-              fieldType = fields.get("filedType").fold(0)(_.toString.toInt),
-              description = fields.get("description").fold(Option.empty[String])(i => Some(i.toString))
+              fieldName = fields
+                .get("fieldName")
+                .map(_.convertTo[String])
+                .getOrElse(throw new RuntimeException("fieldName required")),
+              nameAlias = fields
+                .get("nameAlias")
+                .map(_.convertTo[String])
+                .getOrElse(throw new RuntimeException("nameAlias required")),
+              fieldType = fields
+                .get("fieldType")
+                .map(_.convertTo[Int])
+                .getOrElse(throw new RuntimeException("fieldType required")),
+              description = fields
+                .get("description")
+                .map(_.convertTo[String])
             ) else
             DelEle(
-              fieldName = fields.get("fieldName").fold("")(_.toString),
+              fieldName = fields
+                .get("fieldName")
+                .map(_.convertTo[String])
+                .getOrElse(throw new RuntimeException("fieldName required")),
             )
         case _ => throw new RuntimeException(s"Invalid JSON format $json")
       }

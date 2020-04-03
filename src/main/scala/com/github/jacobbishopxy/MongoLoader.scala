@@ -3,7 +3,7 @@ package com.github.jacobbishopxy
 import org.mongodb.scala.bson.BsonDocument
 import org.mongodb.scala.{Completed, Document, MongoDatabase}
 import org.mongodb.scala.bson.conversions.Bson
-import org.mongodb.scala.model.{CreateCollectionOptions, Filters, IndexModel, IndexOptions, Indexes, ValidationOptions}
+import org.mongodb.scala.model._
 import org.mongodb.scala.result.DeleteResult
 import spray.json._
 import spray.json.DefaultJsonProtocol._
