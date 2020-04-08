@@ -5,7 +5,7 @@ import org.mongodb.scala._
 import org.mongodb.scala.bson.codecs.Macros._
 import org.mongodb.scala.bson.codecs.DEFAULT_CODEC_REGISTRY
 import org.mongodb.scala.bson.annotations.BsonProperty
-import org.mongodb.scala.model.{Filters, Updates, ValidationOptions, CreateCollectionOptions}
+import org.mongodb.scala.model.{CreateCollectionOptions, Filters, Updates, ValidationOptions}
 import org.mongodb.scala.result.DeleteResult
 import org.bson.codecs.configuration.CodecRegistries.{fromProviders, fromRegistries}
 import org.bson.codecs.configuration.CodecRegistry
@@ -124,7 +124,9 @@ object DevMongo1 extends App with DevMongoRepo {
 object DevMongo2 extends App with DevMongoRepo {
 
   /**
-   * This demo shows how to create a collection with validator
+   * This demo shows how to create a collection with validator:
+   * 1. normal method
+   * 2. using jsonSchema
    */
 
   // mongo create collection with validation options (written in Mongo shell)
@@ -140,7 +142,7 @@ object DevMongo2 extends App with DevMongoRepo {
    }
    */
 
-  // collection data types' restriction
+  // 1. normal method, create field restriction first
   val username: Bson = Filters.`type`("username", BsonType.STRING)
   val email: Bson = Filters.regex("email", "@*.*$")
   val password: Bson = Filters.`type`("password", BsonType.STRING)
@@ -156,9 +158,50 @@ object DevMongo2 extends App with DevMongoRepo {
   val res = createUserCollection("user", database)
   Await.result(res, 10.seconds)
 
+  // 2. use Filters.jsonSchema method to create a validator, since we also need other validator attributes
+  val username1 = "username" -> Document("bsonType" -> "string", "title" -> "用户", "description" -> "用户名称！")
+  val email1 = "email" -> Document("bsonType" -> "string", "title" -> "邮箱", "description" -> "邮箱账号！")
+
+  val jsonSchema: Document = Document(
+    "bsonType" -> "object",
+    "required" -> Seq("username", "email"),
+    "properties" -> Document(username1, email1)
+  )
+  val validator1: Bson = Filters.jsonSchema(jsonSchema)
+  val validationOptions1 = ValidationOptions().validator(validator1)
+  val createCollectionOptions1 = CreateCollectionOptions().validationOptions(validationOptions1)
+
+  val res1 = database.createCollection("user1", createCollectionOptions1).toFuture()
+  Await.result(res1, 10.seconds)
+
 }
 
-object DevMongo3 extends App with DevMongoRepo {
+import com.github.jacobbishopxy.MongoModel.{MongoCollectionValidator, MongoValidatorJsonSupport}
+
+object DevMongo3 extends App with DevMongoRepo with MongoValidatorJsonSupport {
+
+  import scala.concurrent.ExecutionContext.Implicits.global
+
+  /**
+   * This demo shows how to query a collection's validator
+   */
+
+  // get current validator
+  def showCollectionInfo(colName: String): Future[Seq[Document]] =
+    database.listCollections().filter(Filters.eq("name", colName)).toFuture()
+
+  val show = showCollectionInfo("user")
+    .map(r => r.head.toList(2)._2
+      .asDocument().toJson.parseJson.convertTo[MongoCollectionValidator]
+    )
+
+
+  val res = Await.result(show, 10.seconds)
+  println(res)
+
+}
+
+object DevMongo4 extends App with DevMongoRepo {
 
   /**
    * This demo shows how to modify a collection's validator
@@ -193,7 +236,7 @@ object DevMongo3 extends App with DevMongoRepo {
 
 }
 
-object DevMongo4 extends App with DevMongoRepo {
+object DevMongo5 extends App with DevMongoRepo {
 
   /**
    * This demo shows using a wrapped function to modify a collection's validator
