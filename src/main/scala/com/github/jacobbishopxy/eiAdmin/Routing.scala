@@ -44,8 +44,8 @@ object Routing extends ValidatorJsonSupport with ConjunctionsJsonSupport {
   private val onShowValidator = path("show-validator") {
     get {
       parameter(paramCollection) {coll =>
-        onSuccess(mongoLoader.getCollectionInfos(coll)) {res =>
-          complete((StatusCodes.Accepted, res.map(_.toString)))
+        onSuccess(mongoLoader.getCollectionValidator(coll)) {res =>
+          complete((StatusCodes.Accepted, res))
         }
       }
     }

@@ -12,6 +12,26 @@ object MongoModel {
    * validator support
    */
 
+  final case class MongoValidatorJsonSchemaProperty(bsonType: String,
+                                                    title: String,
+                                                    description: String)
+  final case class MongoValidatorJsonSchema(bsonType: String,
+                                            required: Seq[String],
+                                            properties: Map[String, MongoValidatorJsonSchemaProperty])
+  final case class MongoValidator($jsonSchema: MongoValidatorJsonSchema)
+  final case class MongoCollectionValidator(validator: MongoValidator)
+
+  trait MongoValidatorJsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
+    implicit val mongoValidatorJsonSchemaPropertyFormat: RootJsonFormat[MongoValidatorJsonSchemaProperty] =
+      jsonFormat3(MongoValidatorJsonSchemaProperty)
+    implicit val mongoValidatorJsonSchemaFormat: RootJsonFormat[MongoValidatorJsonSchema] =
+      jsonFormat3(MongoValidatorJsonSchema)
+    implicit val mongoValidatorFormat: RootJsonFormat[MongoValidator] =
+      jsonFormat1(MongoValidator)
+    implicit val mongoCollectionValidatorFormat: RootJsonFormat[MongoCollectionValidator] =
+      jsonFormat1(MongoCollectionValidator)
+  }
+
   final case class ColIdx(ascending: Boolean)
   final case class Col(fieldName: String,
                        nameAlias: String,
