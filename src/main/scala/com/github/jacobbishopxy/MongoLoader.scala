@@ -67,11 +67,8 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
    * @param collectionName : String
    * @return
    */
-  def getCollectionIndexes(collectionName: String): Future[Seq[String]] = {
-    import scala.concurrent.ExecutionContext.Implicits.global
-
-    collection(collectionName).listIndexes().toFuture().map(_.map(_.toString))
-  }
+  def getCollectionIndexes(collectionName: String): Future[Seq[Document]] =
+    collection(collectionName).listIndexes().toFuture()
 
   // todo: public method -- modify indexes
 

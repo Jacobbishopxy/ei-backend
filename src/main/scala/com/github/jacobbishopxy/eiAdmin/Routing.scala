@@ -19,7 +19,7 @@ object Routing extends ValidatorJsonSupport with ConjunctionsJsonSupport {
 
   private val onShowCollections = path("show-collections") {
     get {
-      complete(mongoLoader.listCollections())
+      complete((StatusCodes.OK, mongoLoader.listCollections()))
     }
   }
 
@@ -36,16 +36,18 @@ object Routing extends ValidatorJsonSupport with ConjunctionsJsonSupport {
   private val onShowIndex = path("show-index") {
     get {
       parameter(paramCollection) { coll =>
-        complete(mongoLoader.getCollectionIndexes(coll))
+        onSuccess(mongoLoader.getCollectionIndexes(coll)) {res =>
+          complete((StatusCodes.OK, res.map(_.toJson.parseJson)))
+        }
       }
     }
   }
 
   private val onShowValidator = path("show-validator") {
     get {
-      parameter(paramCollection) {coll =>
-        onSuccess(mongoLoader.getCollectionValidator(coll)) {res =>
-          complete((StatusCodes.Accepted, res))
+      parameter(paramCollection) { coll =>
+        onSuccess(mongoLoader.getCollectionValidator(coll)) { res =>
+          complete((StatusCodes.OK, res))
         }
       }
     }
@@ -80,7 +82,7 @@ object Routing extends ValidatorJsonSupport with ConjunctionsJsonSupport {
       parameter(paramCollection) { coll =>
         entity(as[QueryContent]) { qc =>
           onSuccess(mongoLoader.fetchData(coll, qc)) { res =>
-            complete((StatusCodes.Accepted, res.map(_.toJson)))
+            complete((StatusCodes.OK, res.map(_.toJson.parseJson)))
           }
         }
       }
@@ -92,7 +94,7 @@ object Routing extends ValidatorJsonSupport with ConjunctionsJsonSupport {
       parameter(paramCollection) { coll =>
         entity(as[QueryContent]) { qc =>
           onSuccess(mongoLoader.deleteData(coll, qc)) { res =>
-            complete((StatusCodes.Accepted, res.toString))
+            complete((StatusCodes.OK, res.toString))
           }
         }
       }
