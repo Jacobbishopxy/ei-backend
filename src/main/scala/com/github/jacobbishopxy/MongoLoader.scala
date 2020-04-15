@@ -37,6 +37,8 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
     createColl.flatMap(_ => createIdx)
   }
 
+  // todo: 1. getCollectionInfo, 2. validate, 3. execute
+  def modifyCollection(collectionInfo: CollectionInfo) = ???
 
   /**
    * create indexes for a collection
@@ -65,12 +67,8 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
    * @param collectionName : String
    * @return
    */
-  def getCollectionIndexes(collectionName: String): Future[Seq[MongoIndex]] = {
-    import scala.concurrent.ExecutionContext.Implicits.global
-
-    val fut = collection(collectionName).listIndexes().toFuture()
-    fut.map(convertMongoIndexes)
-  }
+  def getCollectionIndexes(collectionName: String): Future[Seq[MongoIndex]] =
+    showCollectionIndexes(database, collectionName)
 
   // todo: public method -- modify indexes
 
@@ -101,7 +99,7 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
    * @return
    */
   def getCollectionValidator(collectionName: String): Future[CollectionInfo] =
-    getCollectionInfo(database, collectionName)
+    showCollectionInfo(database, collectionName)
 
   /**
    * insert seq of data
@@ -146,8 +144,25 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
     getCollectionIndexes(collectionName)
       .map(_ (1))
       .map(_.key.keys.toSet)
-      .map(_.union(vc).nonEmpty)
+      .map(_.intersect(vc).nonEmpty)
   }
+
+  /**
+   * modify collection's validator, unsafe!
+   *
+   * @param collectionName   : String
+   * @param validatorContent : [[ValidatorContent]]
+   * @return
+   */
+  private def forceModifyValidator(collectionName: String, validatorContent: ValidatorContent): Future[Document] = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+
+    showCollectionInfo(database, collectionName)
+      .map(validatorUpdate(_, validatorContent))
+      .map(genModifyValidatorDocument)
+      .flatMap(database.runCommand(_).toFuture())
+  }
+
 
   /**
    * modify collection's validator, [[ValidatorContent]] cannot contain primary keys
@@ -159,16 +174,11 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
   def modifyValidator(collectionName: String, validatorContent: ValidatorContent): Future[Document] = {
     import scala.concurrent.ExecutionContext.Implicits.global
 
-    val fut = getCollectionInfo(database, collectionName)
-      .map(validatorUpdate(_, validatorContent))
-      .map(genModifyValidatorDocument)
-      .flatMap(database.runCommand(_).toFuture())
-
-    checkIfContainsPrimaryKeys(collectionName, validatorContent)
-      .map(res => {
-        if (res) throw new RuntimeException("cannot modify primary keys")
-      })
-      .flatMap(_ => fut)
+    for {
+      res <- checkIfContainsPrimaryKeys(collectionName, validatorContent)
+      ans <- if (res) Future(Document("error" -> "Cannot modify primary keys"))
+      else forceModifyValidator(collectionName, validatorContent)
+    } yield ans
   }
 
 }
@@ -224,16 +234,29 @@ object MongoLoader extends MongoJsonSupport {
    * @param mongoCollectionValidator : [[MongoCollectionValidator]]
    * @return
    */
-  private def convertMongoCollectionValidatorToFields(mongoCollectionValidator: MongoCollectionValidator): List[FieldInfo] =
+  private def convertMongoCollectionValidatorToFields(mongoCollectionValidator: MongoCollectionValidator,
+                                                      indexesMapping: Map[String, Int]): List[FieldInfo] =
     mongoCollectionValidator.validator.$jsonSchema.properties.map {
       case (k, v) =>
+        val indexOption = indexesMapping.get(k)
+          .map(i => IndexOption(if (i == 1) true else false))
+
         FieldInfo(
           fieldName = k,
           nameAlias = v.title,
+          indexOption = indexOption,
           fieldType = MongoTypeMapping.stringToInt(v.bsonType),
           description = Some(v.description)
         )
     }.toList
+
+  private def showCollectionIndexes(database: MongoDatabase,
+                                    collectionName: String): Future[Seq[MongoIndex]] = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+
+    val fut = database.getCollection(collectionName).listIndexes().toFuture()
+    fut.map(convertMongoIndexes)
+  }
 
   /**
    *
@@ -241,17 +264,23 @@ object MongoLoader extends MongoJsonSupport {
    * @param collectionName : String
    * @return
    */
-  private def getCollectionInfo(database: MongoDatabase,
-                                collectionName: String): Future[CollectionInfo] = {
+  private def showCollectionInfo(database: MongoDatabase,
+                                 collectionName: String): Future[CollectionInfo] = {
     import scala.concurrent.ExecutionContext.Implicits.global
+
+    val indexes = showCollectionIndexes(database, collectionName)
+      .map(_ (1).key)
 
     database
       .listCollections()
       .filter(Filters.eq("name", collectionName))
       .toFuture()
       .map(extractMongoCollectionValidatorFromSeqDocument)
-      .map(convertMongoCollectionValidatorToFields)
-      .map(i => CollectionInfo(collectionName = collectionName, fields = i))
+      .zip(indexes)
+      .map { case (validator, indexes) =>
+        convertMongoCollectionValidatorToFields(validator, indexes)
+      }
+      .map(i => CollectionInfo(collectionName, i))
   }
 
   /**
