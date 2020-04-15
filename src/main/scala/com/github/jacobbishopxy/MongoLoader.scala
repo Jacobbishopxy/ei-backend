@@ -8,7 +8,6 @@ import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model._
 import org.mongodb.scala.result.DeleteResult
 import spray.json._
-import spray.json.DefaultJsonProtocol._
 
 import scala.concurrent.Future
 
@@ -25,15 +24,15 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
   /**
    * create a collection with validator
    *
-   * @param cols : [[Cols]]
+   * @param collectionInfo : [[CollectionInfo]]
    * @return
    */
-  def createCollection(cols: Cols): Future[String] = {
+  def createCollection(collectionInfo: CollectionInfo): Future[String] = {
     import scala.concurrent.ExecutionContext.Implicits.global
 
-    val co = genCreateCollectionOptions(cols)
-    val createColl = database.createCollection(cols.collectionName, co).toFuture()
-    val createIdx = createIndex(cols)
+    val co = genCreateCollectionOptions(collectionInfo)
+    val createColl = database.createCollection(collectionInfo.collectionName, co).toFuture()
+    val createIdx = createIndex(collectionInfo)
 
     createColl.flatMap(_ => createIdx)
   }
@@ -42,11 +41,11 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
   /**
    * create indexes for a collection
    *
-   * @param cols : [[Cols]]
+   * @param collectionInfo : [[CollectionInfo]]
    * @return
    */
-  def createIndex(cols: Cols): Future[String] = {
-    val idx = cols.cols.foldLeft(List.empty[Bson]) {
+  def createIndex(collectionInfo: CollectionInfo): Future[String] = {
+    val idx = collectionInfo.fields.foldLeft(List.empty[Bson]) {
       case (acc, c) =>
         c.indexOption match {
           case None => acc
@@ -57,10 +56,9 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
     }
     val idxOpt = IndexOptions().background(false).unique(true)
 
-    collection(cols.collectionName).createIndex(Indexes.compoundIndex(idx: _*), idxOpt).toFuture()
+    collection(collectionInfo.collectionName).createIndex(Indexes.compoundIndex(idx: _*), idxOpt).toFuture()
   }
 
-  // todo: collectionIndexes needs a model, instead of Seq[String] as display
   /**
    * show indexes for a collection
    *
@@ -98,8 +96,8 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
    * @param collectionName : String
    * @return
    */
-  def getCollectionValidator(collectionName: String): Future[Cols] =
-    getCollectionCols(database, collectionName)
+  def getCollectionValidator(collectionName: String): Future[CollectionInfo] =
+    getCollectionInfo(database, collectionName)
 
   /**
    * insert seq of data
@@ -127,6 +125,8 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
     collection(collectionName).deleteMany(filter).toFuture()
   }
 
+  // todo: validatorContent cannot include
+
   /**
    * modify collection's validator
    *
@@ -137,7 +137,7 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
   def modifyValidator(collectionName: String, validatorContent: ValidatorContent): Future[Document] = {
     import scala.concurrent.ExecutionContext.Implicits.global
 
-    getCollectionCols(database, collectionName)
+    getCollectionInfo(database, collectionName)
       .map(validatorUpdate(_, validatorContent))
       .map(genModifyValidatorDocument)
       .flatMap(database.runCommand(_).toFuture())
@@ -157,11 +157,11 @@ object MongoLoader extends MongoValidatorJsonSupport {
 
   /**
    *
-   * @param cols : [[Cols]]
+   * @param collectionInfo : [[CollectionInfo]]
    * @return
    */
-  private def genValidatorDocument(cols: Cols): Document = {
-    val properties = cols.cols.foldLeft(List.empty[(String, Document)]) {
+  private def genValidatorDocument(collectionInfo: CollectionInfo): Document = {
+    val properties = collectionInfo.fields.foldLeft(List.empty[(String, Document)]) {
       case (l, i) =>
         val field = i.fieldName -> Document(
           "bsonType" -> MongoTypeMapping.intToString(i.fieldType),
@@ -172,13 +172,13 @@ object MongoLoader extends MongoValidatorJsonSupport {
     }
     Document(
       "bsonType" -> "object",
-      "required" -> cols.cols.map(_.fieldName),
+      "required" -> collectionInfo.fields.map(_.fieldName),
       "properties" -> properties
     )
   }
 
-  private def genCreateCollectionOptions(cols: Cols) = {
-    val jsonSchema = Filters.jsonSchema(genValidatorDocument(cols))
+  private def genCreateCollectionOptions(collectionInfo: CollectionInfo) = {
+    val jsonSchema = Filters.jsonSchema(genValidatorDocument(collectionInfo))
     val vo = ValidationOptions().validator(jsonSchema)
     CreateCollectionOptions().validationOptions(vo)
   }
@@ -196,10 +196,10 @@ object MongoLoader extends MongoValidatorJsonSupport {
    * @param mongoCollectionValidator : [[MongoCollectionValidator]]
    * @return
    */
-  private def convertMongoCollectionValidatorToCol(mongoCollectionValidator: MongoCollectionValidator): List[Col] =
+  private def convertMongoCollectionValidatorToCol(mongoCollectionValidator: MongoCollectionValidator): List[FieldInfo] =
     mongoCollectionValidator.validator.$jsonSchema.properties.map {
       case (k, v) =>
-        Col(
+        FieldInfo(
           fieldName = k,
           nameAlias = v.title,
           fieldType = MongoTypeMapping.stringToInt(v.bsonType),
@@ -213,8 +213,8 @@ object MongoLoader extends MongoValidatorJsonSupport {
    * @param collectionName : String
    * @return
    */
-  private def getCollectionCols(database: MongoDatabase,
-                                collectionName: String): Future[Cols] = {
+  private def getCollectionInfo(database: MongoDatabase,
+                                collectionName: String): Future[CollectionInfo] = {
     import scala.concurrent.ExecutionContext.Implicits.global
 
     database
@@ -223,37 +223,37 @@ object MongoLoader extends MongoValidatorJsonSupport {
       .toFuture()
       .map(extractMongoCollectionValidatorFromSeqDocument)
       .map(convertMongoCollectionValidatorToCol)
-      .map(i => Cols(collectionName = collectionName, cols = i))
+      .map(i => CollectionInfo(collectionName = collectionName, fields = i))
   }
 
   /**
    *
-   * @param currentCols      : [[Cols]]
+   * @param currentCollectionInfo      : [[CollectionInfo]]
    * @param validatorContent : [[ValidatorContent]]
    * @return
    */
-  private def validatorUpdate(currentCols: Cols,
-                              validatorContent: ValidatorContent): Cols = {
-    val colList = validatorContent.actions.foldLeft(currentCols.cols.reverse) {
+  private def validatorUpdate(currentCollectionInfo: CollectionInfo,
+                              validatorContent: ValidatorContent): CollectionInfo = {
+    val colList = validatorContent.actions.foldLeft(currentCollectionInfo.fields.reverse) {
       case (acc, a) => a match {
-        case AddEle(fn, na, ft, d) =>
-          acc :+ Col(fieldName = fn, nameAlias = na, fieldType = ft, description = d)
-        case DelEle(fn) =>
+        case AddField(fn, na, ft, d) =>
+          acc :+ FieldInfo(fieldName = fn, nameAlias = na, fieldType = ft, description = d)
+        case DelField(fn) =>
           acc.filterNot(c => c.fieldName == fn)
       }
     }
-    Cols(currentCols.collectionName, colList)
+    CollectionInfo(currentCollectionInfo.collectionName, colList)
   }
 
   /**
    *
-   * @param validatorCols : [[Cols]]
+   * @param collectionInfo : [[CollectionInfo]]
    * @return
    */
-  private def genModifyValidatorDocument(validatorCols: Cols): Document =
+  private def genModifyValidatorDocument(collectionInfo: CollectionInfo): Document =
     Document(
-      "collMod" -> validatorCols.collectionName,
-      "validator" -> Document("$jsonSchema" -> genValidatorDocument(validatorCols))
+      "collMod" -> collectionInfo.collectionName,
+      "validator" -> Document("$jsonSchema" -> genValidatorDocument(collectionInfo))
     )
 
   /**
@@ -296,7 +296,7 @@ object MongoLoader extends MongoValidatorJsonSupport {
   // todo: redo Conjunction, unmarshall and/or recursively
   /**
    *
-   * @param filter: [[Conjunctions]]
+   * @param filter : [[Conjunctions]]
    * @return
    */
   private def getFilter(filter: Conjunctions): Bson = filter match {

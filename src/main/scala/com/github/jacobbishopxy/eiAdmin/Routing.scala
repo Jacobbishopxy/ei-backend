@@ -17,16 +17,20 @@ object Routing extends ValidatorJsonSupport with ConjunctionsJsonSupport {
 
   private val paramCollection: NameReceptacle[String] = Symbol("collection").as[String]
 
+  // todo: `handleExceptions()` is required for each route
+
   private val onShowCollections = path("show-collections") {
     get {
-      complete((StatusCodes.OK, mongoLoader.listCollections()))
+      onSuccess(mongoLoader.listCollections()) {res =>
+        complete((StatusCodes.OK, res))
+      }
     }
   }
 
   private val onCreateCollection = path("create-collection") {
     post {
-      entity(as[Cols]) { cols =>
-        onSuccess(mongoLoader.createCollection(cols)) { res =>
+      entity(as[CollectionInfo]) { collectionInfo =>
+        onSuccess(mongoLoader.createCollection(collectionInfo)) { res =>
           complete((StatusCodes.Created, res))
         }
       }
@@ -35,8 +39,8 @@ object Routing extends ValidatorJsonSupport with ConjunctionsJsonSupport {
 
   private val onShowIndex = path("show-index") {
     get {
-      parameter(paramCollection) { coll =>
-        onSuccess(mongoLoader.getCollectionIndexes(coll)) {res =>
+      parameter(paramCollection) { collectionName =>
+        onSuccess(mongoLoader.getCollectionIndexes(collectionName)) { res =>
           complete((StatusCodes.OK, res.map(_.toJson.parseJson)))
         }
       }
@@ -45,8 +49,8 @@ object Routing extends ValidatorJsonSupport with ConjunctionsJsonSupport {
 
   private val onShowValidator = path("show-validator") {
     get {
-      parameter(paramCollection) { coll =>
-        onSuccess(mongoLoader.getCollectionValidator(coll)) { res =>
+      parameter(paramCollection) { collectionName =>
+        onSuccess(mongoLoader.getCollectionValidator(collectionName)) { res =>
           complete((StatusCodes.OK, res))
         }
       }
@@ -55,9 +59,9 @@ object Routing extends ValidatorJsonSupport with ConjunctionsJsonSupport {
 
   private val onModifyValidator = path("modify-validator") {
     post {
-      parameter(paramCollection) { coll =>
-        entity(as[ValidatorContent]) { va =>
-          onSuccess(mongoLoader.modifyValidator(coll, va)) { res =>
+      parameter(paramCollection) { collectionName =>
+        entity(as[ValidatorContent]) { vc =>
+          onSuccess(mongoLoader.modifyValidator(collectionName, vc)) { res =>
             complete((StatusCodes.Accepted, res.toString))
           }
         }
@@ -67,9 +71,9 @@ object Routing extends ValidatorJsonSupport with ConjunctionsJsonSupport {
 
   private val onInsertData = path("insert-data") {
     post {
-      parameter(paramCollection) { coll =>
+      parameter(paramCollection) { collectionName =>
         entity(as[Seq[JsValue]]) { data =>
-          onSuccess(mongoLoader.insertData(coll, data)) { res =>
+          onSuccess(mongoLoader.insertData(collectionName, data)) { res =>
             complete((StatusCodes.Accepted, res.toString))
           }
         }
@@ -79,9 +83,9 @@ object Routing extends ValidatorJsonSupport with ConjunctionsJsonSupport {
 
   private val onQueryData = path("query-data") {
     post {
-      parameter(paramCollection) { coll =>
+      parameter(paramCollection) { collectionName =>
         entity(as[QueryContent]) { qc =>
-          onSuccess(mongoLoader.fetchData(coll, qc)) { res =>
+          onSuccess(mongoLoader.fetchData(collectionName, qc)) { res =>
             complete((StatusCodes.OK, res.map(_.toJson.parseJson)))
           }
         }
@@ -91,9 +95,9 @@ object Routing extends ValidatorJsonSupport with ConjunctionsJsonSupport {
 
   private val onDeleteData = path("delete-data") {
     post {
-      parameter(paramCollection) { coll =>
+      parameter(paramCollection) { collectionName =>
         entity(as[QueryContent]) { qc =>
-          onSuccess(mongoLoader.deleteData(coll, qc)) { res =>
+          onSuccess(mongoLoader.deleteData(collectionName, qc)) { res =>
             complete((StatusCodes.OK, res.toString))
           }
         }

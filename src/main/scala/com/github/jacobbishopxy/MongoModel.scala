@@ -9,7 +9,29 @@ import spray.json._
 object MongoModel {
 
   /**
-   * validator support
+   * base data structure
+   */
+
+  final case class IndexOption(ascending: Boolean)
+  final case class FieldInfo(fieldName: String,
+                             nameAlias: String,
+                             fieldType: Int,
+                             indexOption: Option[IndexOption] = None,
+                             description: Option[String] = None)
+  final case class CollectionInfo(collectionName: String,
+                                  fields: List[FieldInfo])
+
+  trait ValidatorActions
+  case class AddField(fieldName: String,
+                      nameAlias: String,
+                      fieldType: Int,
+                      description: Option[String] = None) extends ValidatorActions
+  case class DelField(fieldName: String) extends ValidatorActions
+
+  case class ValidatorContent(actions: List[ValidatorActions])
+
+  /**
+   * validator json support
    */
 
   final case class MongoValidatorJsonSchemaProperty(bsonType: String,
@@ -32,30 +54,11 @@ object MongoModel {
       jsonFormat1(MongoCollectionValidator)
   }
 
-  final case class ColIdx(ascending: Boolean)
-  final case class Col(fieldName: String,
-                       nameAlias: String,
-                       fieldType: Int,
-                       indexOption: Option[ColIdx] = None,
-                       description: Option[String] = None)
-  final case class Cols(collectionName: String,
-                        cols: List[Col])
-
-  trait ValidatorActions
-  case class AddEle(fieldName: String,
-                    nameAlias: String,
-                    fieldType: Int,
-                    description: Option[String] = None) extends ValidatorActions
-  case class DelEle(fieldName: String) extends ValidatorActions
-
-  case class ValidatorContent(actions: List[ValidatorActions])
-
-
   trait ValidatorJsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
 
-    implicit val colIdxFormat: RootJsonFormat[ColIdx] = jsonFormat1(ColIdx)
-    implicit val colFormat: RootJsonFormat[Col] = jsonFormat5(Col)
-    implicit val colsFormat: RootJsonFormat[Cols] = jsonFormat2(Cols)
+    implicit val indexOptionFormat: RootJsonFormat[IndexOption] = jsonFormat1(IndexOption)
+    implicit val fieldInfoFormat: RootJsonFormat[FieldInfo] = jsonFormat5(FieldInfo)
+    implicit val collectionInfoFormat: RootJsonFormat[CollectionInfo] = jsonFormat2(CollectionInfo)
 
     implicit object AnyJsonFormat extends JsonFormat[Any] {
       override def write(value: Any): JsValue = value match {
@@ -74,20 +77,19 @@ object MongoModel {
       }
     }
 
-    implicit val addEleFormat: RootJsonFormat[AddEle] = jsonFormat4(AddEle)
-    implicit val delEleFormat: RootJsonFormat[DelEle] = jsonFormat1(DelEle)
-
+    implicit val addFieldFormat: RootJsonFormat[AddField] = jsonFormat4(AddField)
+    implicit val delFieldFormat: RootJsonFormat[DelField] = jsonFormat1(DelField)
 
     implicit object ValidatorActionsFormat extends JsonFormat[ValidatorActions] {
       override def write(obj: ValidatorActions): JsValue = obj match {
-        case a @ AddEle(_, _, _, _) => a.toJson
-        case a @ DelEle(_) => a.toJson
+        case a @ AddField(_, _, _, _) => a.toJson
+        case a @ DelField(_) => a.toJson
       }
 
       override def read(json: JsValue): ValidatorActions = json match {
         case JsObject(fields) =>
           if (fields.contains("nameAlias"))
-            AddEle(
+            AddField(
               fieldName = fields
                 .get("fieldName")
                 .map(_.convertTo[String])
@@ -104,7 +106,7 @@ object MongoModel {
                 .get("description")
                 .map(_.convertTo[String])
             ) else
-            DelEle(
+            DelField(
               fieldName = fields
                 .get("fieldName")
                 .map(_.convertTo[String])
@@ -119,7 +121,7 @@ object MongoModel {
 
 
   /**
-   * query content support
+   * query content json support
    */
 
   final case class FilterOptions(eq: Option[JsValue],
@@ -129,6 +131,8 @@ object MongoModel {
                                  lte: Option[JsValue])
 
   type ConjunctionsType = Map[String, FilterOptions]
+
+  // todo: combine `FilterOptions` and `Conjunctions`
 
   trait Conjunctions
   final case class AND(and: ConjunctionsType) extends Conjunctions

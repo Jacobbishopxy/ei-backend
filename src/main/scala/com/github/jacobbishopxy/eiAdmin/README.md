@@ -10,7 +10,7 @@
     ```
     {
         "collectionName": "demo",
-        "cols": [
+        "fields": [
             {
                 "fieldName": "symbol",
                 "nameAlias": "代码",
