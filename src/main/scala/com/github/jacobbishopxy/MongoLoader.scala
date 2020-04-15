@@ -65,8 +65,12 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
    * @param collectionName : String
    * @return
    */
-  def getCollectionIndexes(collectionName: String): Future[Seq[Document]] =
-    collection(collectionName).listIndexes().toFuture()
+  def getCollectionIndexes(collectionName: String): Future[Seq[MongoIndex]] = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+
+    val fut = collection(collectionName).listIndexes().toFuture()
+    fut.map(convertMongoIndexes)
+  }
 
   // todo: public method -- modify indexes
 
@@ -125,28 +129,52 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
     collection(collectionName).deleteMany(filter).toFuture()
   }
 
-  // todo: validatorContent cannot include
-
   /**
-   * modify collection's validator
    *
    * @param collectionName   : String
-   * @param validatorContent : [[ValidatorActions]]
+   * @param validatorContent : [[ValidatorContent]]
+   * @return
+   */
+  private def checkIfContainsPrimaryKeys(collectionName: String, validatorContent: ValidatorContent): Future[Boolean] = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+
+    val vc = validatorContent.actions.map {
+      case AddField(fieldName, _, _, _) => fieldName
+      case DelField(fieldName) => fieldName
+    }.toSet
+
+    getCollectionIndexes(collectionName)
+      .map(_ (1))
+      .map(_.key.keys.toSet)
+      .map(_.union(vc).nonEmpty)
+  }
+
+  /**
+   * modify collection's validator, [[ValidatorContent]] cannot contain primary keys
+   *
+   * @param collectionName   : String
+   * @param validatorContent : [[ValidatorContent]]
    * @return
    */
   def modifyValidator(collectionName: String, validatorContent: ValidatorContent): Future[Document] = {
     import scala.concurrent.ExecutionContext.Implicits.global
 
-    getCollectionInfo(database, collectionName)
+    val fut = getCollectionInfo(database, collectionName)
       .map(validatorUpdate(_, validatorContent))
       .map(genModifyValidatorDocument)
       .flatMap(database.runCommand(_).toFuture())
+
+    checkIfContainsPrimaryKeys(collectionName, validatorContent)
+      .map(res => {
+        if (res) throw new RuntimeException("cannot modify primary keys")
+      })
+      .flatMap(_ => fut)
   }
 
 }
 
 
-object MongoLoader extends MongoValidatorJsonSupport {
+object MongoLoader extends MongoJsonSupport {
 
   import Utilities.MongoTypeMapping
 
@@ -196,7 +224,7 @@ object MongoLoader extends MongoValidatorJsonSupport {
    * @param mongoCollectionValidator : [[MongoCollectionValidator]]
    * @return
    */
-  private def convertMongoCollectionValidatorToCol(mongoCollectionValidator: MongoCollectionValidator): List[FieldInfo] =
+  private def convertMongoCollectionValidatorToFields(mongoCollectionValidator: MongoCollectionValidator): List[FieldInfo] =
     mongoCollectionValidator.validator.$jsonSchema.properties.map {
       case (k, v) =>
         FieldInfo(
@@ -222,14 +250,22 @@ object MongoLoader extends MongoValidatorJsonSupport {
       .filter(Filters.eq("name", collectionName))
       .toFuture()
       .map(extractMongoCollectionValidatorFromSeqDocument)
-      .map(convertMongoCollectionValidatorToCol)
+      .map(convertMongoCollectionValidatorToFields)
       .map(i => CollectionInfo(collectionName = collectionName, fields = i))
   }
 
   /**
    *
-   * @param currentCollectionInfo      : [[CollectionInfo]]
-   * @param validatorContent : [[ValidatorContent]]
+   * @param seqDocument : Seq[Document]
+   * @return
+   */
+  private def convertMongoIndexes(seqDocument: Seq[Document]): Seq[MongoIndex] =
+    seqDocument.map(_.toJson.parseJson.convertTo[MongoIndex])
+
+  /**
+   *
+   * @param currentCollectionInfo : [[CollectionInfo]]
+   * @param validatorContent      : [[ValidatorContent]]
    * @return
    */
   private def validatorUpdate(currentCollectionInfo: CollectionInfo,
@@ -309,3 +345,4 @@ object MongoLoader extends MongoValidatorJsonSupport {
   }
 
 }
+

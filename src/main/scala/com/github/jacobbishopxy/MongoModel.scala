@@ -42,8 +42,13 @@ object MongoModel {
                                             properties: Map[String, MongoValidatorJsonSchemaProperty])
   final case class MongoValidator($jsonSchema: MongoValidatorJsonSchema)
   final case class MongoCollectionValidator(validator: MongoValidator)
+  final case class MongoIndex(key: Map[String, Int],
+                              name: String,
+                              ns: String,
+                              unique: Option[Boolean],
+                              v: Int)
 
-  trait MongoValidatorJsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
+  trait MongoJsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
     implicit val mongoValidatorJsonSchemaPropertyFormat: RootJsonFormat[MongoValidatorJsonSchemaProperty] =
       jsonFormat3(MongoValidatorJsonSchemaProperty)
     implicit val mongoValidatorJsonSchemaFormat: RootJsonFormat[MongoValidatorJsonSchema] =
@@ -52,6 +57,8 @@ object MongoModel {
       jsonFormat1(MongoValidator)
     implicit val mongoCollectionValidatorFormat: RootJsonFormat[MongoCollectionValidator] =
       jsonFormat1(MongoCollectionValidator)
+    implicit val mongoIndexFormat: RootJsonFormat[MongoIndex] =
+      jsonFormat5(MongoIndex)
   }
 
   trait ValidatorJsonSupport extends SprayJsonSupport with DefaultJsonProtocol {

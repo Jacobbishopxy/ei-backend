@@ -176,9 +176,9 @@ object DevMongo2 extends App with DevMongoRepo {
 
 }
 
-import com.github.jacobbishopxy.MongoModel.{MongoCollectionValidator, MongoValidatorJsonSupport}
+import com.github.jacobbishopxy.MongoModel.{MongoCollectionValidator, MongoJsonSupport}
 
-object DevMongo3 extends App with DevMongoRepo with MongoValidatorJsonSupport {
+object DevMongo3 extends App with DevMongoRepo with MongoJsonSupport {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 

@@ -11,7 +11,7 @@ import spray.json._
 /**
  * Created by Jacob Xie on 3/23/2020
  */
-object Routing extends ValidatorJsonSupport with ConjunctionsJsonSupport {
+object Routing extends MongoJsonSupport with ValidatorJsonSupport with ConjunctionsJsonSupport {
 
   import com.github.jacobbishopxy.eiAdmin.Repo._
 
@@ -41,7 +41,7 @@ object Routing extends ValidatorJsonSupport with ConjunctionsJsonSupport {
     get {
       parameter(paramCollection) { collectionName =>
         onSuccess(mongoLoader.getCollectionIndexes(collectionName)) { res =>
-          complete((StatusCodes.OK, res.map(_.toJson.parseJson)))
+          complete((StatusCodes.OK, res.toJson))
         }
       }
     }
