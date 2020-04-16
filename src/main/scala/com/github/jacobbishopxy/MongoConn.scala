@@ -3,6 +3,7 @@ package com.github.jacobbishopxy
 import org.mongodb.scala._
 
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
  * Created by Jacob Xie on 3/23/2020
@@ -25,6 +26,9 @@ trait MongoConn {
 
   def listCollections(): Future[Seq[String]] =
     database.listCollectionNames().toFuture()
+
+  def isCollectionExist(name: String): Future[Boolean] =
+    listCollections().map(_.contains(name))
 
   def dropCollection(name: String): Future[Completed] =
     collection(name).drop().toFuture()

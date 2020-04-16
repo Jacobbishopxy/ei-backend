@@ -45,7 +45,11 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
     val createColl = database.createCollection(collectionInfo.collectionName, co).toFuture()
     val createIdx = createIndex(collectionInfo)
 
-    createColl.flatMap(_ => createIdx)
+    for {
+      ifExist <- isCollectionExist(collectionInfo.collectionName)
+      _ <- if (!ifExist) createColl else throw new RuntimeException("collection already exists!")
+      ans <- createIdx
+    } yield ans
   }
 
   /**
@@ -58,7 +62,10 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
   def modifyValidator(collectionName: String,
                       validatorContent: ValidatorContent): Future[Document] =
     for {
-      res <- checkIfContainsPrimaryKeys(collectionName, validatorContent)
+      ifExist <- isCollectionExist(collectionName)
+      res <-
+        if (ifExist) checkIfContainsPrimaryKeys(collectionName, validatorContent)
+        else throw new RuntimeException("collection does not exist!")
       ans <- if (res) Future(Document("error" -> "Cannot modify primary keys"))
       else forceModifyCollectionValidator(collectionName, validatorContent)
     } yield ans
@@ -72,11 +79,18 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
    */
   def modifyCollection(collectionInfo: CollectionInfo): Future[Document] = {
     val collectionName = collectionInfo.collectionName
-    showCollection(collectionName)
-      .map(_.fields)
-      .map(genValidatorContent(_, collectionInfo.fields))
-      .flatMap(modifyValidator(collectionName, _))
+
+    for {
+      ifExist <- isCollectionExist(collectionName)
+      res <-
+        if (ifExist) showCollection(collectionName)
+          .map(_.fields)
+          .map(genValidatorContent(_, collectionInfo.fields))
+        else throw new RuntimeException("collection does not exist!")
+      ans <- modifyValidator(collectionName, res)
+    } yield ans
   }
+
 
   /**
    * create indexes for a collection
@@ -85,6 +99,7 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
    * @return
    */
   def createIndex(collectionInfo: CollectionInfo): Future[String] = {
+    val collectionName = collectionInfo.collectionName
     val idx = collectionInfo.fields.foldLeft(List.empty[Bson]) {
       case (acc, c) =>
         c.indexOption match {
@@ -96,7 +111,11 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
     }
     val idxOpt = IndexOptions().background(false).unique(true)
 
-    collection(collectionInfo.collectionName).createIndex(Indexes.compoundIndex(idx: _*), idxOpt).toFuture()
+    val fut = collection(collectionInfo.collectionName)
+      .createIndex(Indexes.compoundIndex(idx: _*), idxOpt)
+      .toFuture()
+
+    ifExistThen(collectionName, fut)
   }
 
   /**
@@ -105,8 +124,10 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
    * @param collectionName : String
    * @return
    */
-  def showIndex(collectionName: String): Future[Seq[MongoIndex]] =
-    showCollectionIndexes(database, collectionName)
+  def showIndex(collectionName: String): Future[Seq[MongoIndex]] = {
+    val fut = showCollectionIndexes(database, collectionName)
+    ifExistThen(collectionName, fut)
+  }
 
   // todo: public method -- modify indexes
 
@@ -125,10 +146,13 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
    */
   def fetchData(collectionName: String,
                 queryContent: QueryContent): Future[Seq[Document]] = {
+
+
     val filter = getFilterFromQueryContent(queryContent)
     val cf = collection(collectionName).find(filter)
-    val res = queryContent.limit.fold(cf) { i => cf.limit(i) }
-    res.toFuture()
+    val fut = queryContent.limit.fold(cf) { i => cf.limit(i) }.toFuture()
+
+    ifExistThen(collectionName, fut)
   }
 
 
@@ -142,7 +166,9 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
   def insertData(collectionName: String,
                  data: Seq[JsValue]): Future[Completed] = {
     val d = data.map(_.toString()).map(Document(_))
-    collection(collectionName).insertMany(d).toFuture()
+    val fut = collection(collectionName).insertMany(d).toFuture()
+
+    ifExistThen(collectionName, fut)
   }
 
   // def updateData(collectionName: String) = ???
@@ -155,8 +181,26 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
    * @return
    */
   def deleteData(collectionName: String,
-                 queryContent: QueryContent): Future[DeleteResult] =
-    collection(collectionName).deleteMany(getFilterFromQueryContent(queryContent)).toFuture()
+                 queryContent: QueryContent): Future[DeleteResult] = {
+    val fut = collection(collectionName)
+      .deleteMany(getFilterFromQueryContent(queryContent))
+      .toFuture()
+
+    ifExistThen(collectionName, fut)
+  }
+
+  /**
+   *
+   * @param collectionName : String
+   * @param fut            : Future[T]
+   * @tparam T : type
+   * @return
+   */
+  private def ifExistThen[T](collectionName: String, fut: Future[T]) =
+    for {
+      ifExist <- isCollectionExist(collectionName)
+      ans <- if (ifExist) fut else throw new RuntimeException("collection does not exist!")
+    } yield ans
 
   /**
    *
@@ -187,10 +231,12 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
    */
   private def forceModifyCollectionValidator(collectionName: String,
                                              validatorContent: ValidatorContent): Future[Document] =
-    showCollectionInfo(database, collectionName)
-      .map(validatorUpdate(_, validatorContent))
-      .map(genModifyValidatorDocument)
-      .flatMap(database.runCommand(_).toFuture())
+    for {
+      res <- showCollectionInfo(database, collectionName)
+        .map(validatorUpdate(_, validatorContent))
+        .map(genModifyValidatorDocument)
+      ans <- database.runCommand(res).toFuture()
+    } yield ans
 
 }
 
@@ -198,9 +244,6 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
 object MongoLoader extends MongoJsonSupport {
 
   import Utilities.MongoTypeMapping
-
-
-  case class RawValidatorMap(validator: Map[String, Map[String, Int]])
 
 
   // todo: projecting fields (limit the fields returned)
