@@ -8,6 +8,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import spray.json._
 
+
 /**
  * Created by Jacob Xie on 3/23/2020
  */
@@ -15,14 +16,25 @@ object Routing extends MongoJsonSupport with ValidatorJsonSupport with Conjuncti
 
   import com.github.jacobbishopxy.eiAdmin.Repo._
 
+
   private val paramCollection: NameReceptacle[String] = Symbol("collection").as[String]
 
   // todo: `handleExceptions()` is required for each route
 
   private val onShowCollections = path("show-collections") {
     get {
-      onSuccess(mongoLoader.listCollections()) {res =>
+      onSuccess(mongoLoader.listCollections()) { res =>
         complete((StatusCodes.OK, res))
+      }
+    }
+  }
+
+  private val onShowCollection = path("show-collection") {
+    get {
+      parameter(paramCollection) { collectionName =>
+        onSuccess(mongoLoader.showCollection(collectionName)) { res =>
+          complete((StatusCodes.OK, res))
+        }
       }
     }
   }
@@ -32,26 +44,6 @@ object Routing extends MongoJsonSupport with ValidatorJsonSupport with Conjuncti
       entity(as[CollectionInfo]) { collectionInfo =>
         onSuccess(mongoLoader.createCollection(collectionInfo)) { res =>
           complete((StatusCodes.Created, res))
-        }
-      }
-    }
-  }
-
-  private val onShowIndex = path("show-index") {
-    get {
-      parameter(paramCollection) { collectionName =>
-        onSuccess(mongoLoader.getCollectionIndexes(collectionName)) { res =>
-          complete((StatusCodes.OK, res.toJson))
-        }
-      }
-    }
-  }
-
-  private val onShowValidator = path("show-validator") {
-    get {
-      parameter(paramCollection) { collectionName =>
-        onSuccess(mongoLoader.getCollectionValidator(collectionName)) { res =>
-          complete((StatusCodes.OK, res))
         }
       }
     }
@@ -68,6 +60,28 @@ object Routing extends MongoJsonSupport with ValidatorJsonSupport with Conjuncti
       }
     }
   }
+
+  private val onModifyCollection = path("modify-collection") {
+    post {
+      entity(as[CollectionInfo]) {collectionInfo =>
+        onSuccess(mongoLoader.modifyCollection(collectionInfo)) {res =>
+          complete((StatusCodes.Accepted, res.toString))
+        }
+      }
+    }
+  }
+
+
+  private val onShowIndex = path("show-index") {
+    get {
+      parameter(paramCollection) { collectionName =>
+        onSuccess(mongoLoader.showIndex(collectionName)) { res =>
+          complete((StatusCodes.OK, res.toJson))
+        }
+      }
+    }
+  }
+
 
   private val onInsertData = path("insert-data") {
     post {
@@ -110,10 +124,11 @@ object Routing extends MongoJsonSupport with ValidatorJsonSupport with Conjuncti
     pathPrefix("admin") {
       concat(
         onShowCollections,
+        onShowCollection,
         onCreateCollection,
-        onShowIndex,
-        onShowValidator,
         onModifyValidator,
+        onModifyCollection,
+        onShowIndex,
         onInsertData,
         onQueryData,
         onDeleteData,

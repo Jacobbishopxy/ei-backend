@@ -3,6 +3,7 @@ package com.github.jacobbishopxy
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import spray.json._
 
+
 /**
  * Created by Jacob Xie on 4/1/2020
  */
@@ -13,19 +14,23 @@ object MongoModel {
    */
 
   final case class IndexOption(ascending: Boolean)
+
   final case class FieldInfo(fieldName: String,
                              nameAlias: String,
                              fieldType: Int,
-                             indexOption: Option[IndexOption] = None,
+                             indexOption: Option[IndexOption] = None,  // primary key if not None
                              description: Option[String] = None)
+
   final case class CollectionInfo(collectionName: String,
                                   fields: List[FieldInfo])
 
   trait ValidatorActions
+
   case class AddField(fieldName: String,
                       nameAlias: String,
                       fieldType: Int,
                       description: Option[String] = None) extends ValidatorActions
+
   case class DelField(fieldName: String) extends ValidatorActions
 
   case class ValidatorContent(actions: List[ValidatorActions])
@@ -37,11 +42,15 @@ object MongoModel {
   final case class MongoValidatorJsonSchemaProperty(bsonType: String,
                                                     title: String,
                                                     description: String)
+
   final case class MongoValidatorJsonSchema(bsonType: String,
                                             required: Seq[String],
                                             properties: Map[String, MongoValidatorJsonSchemaProperty])
+
   final case class MongoValidator($jsonSchema: MongoValidatorJsonSchema)
+
   final case class MongoCollectionValidator(validator: MongoValidator)
+
   final case class MongoIndex(key: Map[String, Int],
                               name: String,
                               ns: String,
@@ -75,6 +84,7 @@ object MongoModel {
         case b: Boolean if !b => JsFalse
         case _ => throw new RuntimeException(s"AnyJsonFormat write failed: ${value.toString}")
       }
+
       override def read(value: JsValue): Any = value match {
         case JsNumber(n) => n.intValue
         case JsString(s) => s
@@ -142,7 +152,9 @@ object MongoModel {
   // todo: combine `FilterOptions` and `Conjunctions`
 
   trait Conjunctions
+
   final case class AND(and: ConjunctionsType) extends Conjunctions
+
   final case class OR(or: ConjunctionsType) extends Conjunctions
 
   case class QueryContent(limit: Option[Int], filter: Option[Conjunctions])
