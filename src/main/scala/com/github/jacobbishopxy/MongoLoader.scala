@@ -10,8 +10,7 @@ import org.mongodb.scala.result.DeleteResult
 import spray.json._
 
 import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
-
+import scala.concurrent.ExecutionContext.Implicits
 
 /**
  * Created by Jacob Xie on 4/1/2020
@@ -40,15 +39,16 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
    * @return
    */
   def createCollection(collectionInfo: CollectionInfo): Future[String] = {
+    import Implicits.global
 
     val co = genCreateCollectionOptions(collectionInfo)
-    val createColl = database.createCollection(collectionInfo.collectionName, co).toFuture()
-    val createIdx = createIndex(collectionInfo)
 
     for {
       ifExist <- doesCollectionExist(collectionInfo.collectionName)
-      _ <- if (!ifExist) createColl else throw new RuntimeException("collection already exists!")
-      ans <- createIdx
+      _ <-
+        if (!ifExist) database.createCollection(collectionInfo.collectionName, co).toFuture()
+        else throw new RuntimeException("collection already exists!")
+      ans <- createIndex(collectionInfo)
     } yield ans
   }
 
@@ -60,7 +60,9 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
    * @return
    */
   def modifyValidator(collectionName: String,
-                      validatorContent: ValidatorContent): Future[Document] =
+                      validatorContent: ValidatorContent): Future[Document] = {
+    import Implicits.global
+
     for {
       ifExist <- doesCollectionExist(collectionName)
       res <-
@@ -69,6 +71,7 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
       ans <- if (res) Future(Document("error" -> "Cannot modify primary keys"))
       else forceModifyCollectionValidator(collectionName, validatorContent)
     } yield ans
+  }
 
 
   /**
@@ -78,6 +81,8 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
    * @return
    */
   def modifyCollection(collectionInfo: CollectionInfo): Future[Document] = {
+    import Implicits.global
+
     val collectionName = collectionInfo.collectionName
 
     for {
@@ -196,11 +201,14 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
    * @tparam T : type
    * @return
    */
-  private def ifExistThen[T](collectionName: String, fut: Future[T]) =
+  private def ifExistThen[T](collectionName: String, fut: Future[T]): Future[T] = {
+    import Implicits.global
+
     for {
       ifExist <- doesCollectionExist(collectionName)
       ans <- if (ifExist) fut else throw new RuntimeException("collection does not exist!")
     } yield ans
+  }
 
   /**
    *
@@ -210,6 +218,7 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
    */
   private def checkIfContainsPrimaryKeys(collectionName: String,
                                          validatorContent: ValidatorContent): Future[Boolean] = {
+    import Implicits.global
 
     val vc = validatorContent.actions.map {
       case AddField(fieldName, _, _, _) => fieldName
@@ -230,13 +239,16 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
    * @return
    */
   private def forceModifyCollectionValidator(collectionName: String,
-                                             validatorContent: ValidatorContent): Future[Document] =
+                                             validatorContent: ValidatorContent): Future[Document] = {
+    import Implicits.global
+
     for {
       res <- showCollectionInfo(database, collectionName)
         .map(validatorUpdate(_, validatorContent))
         .map(genModifyValidatorDocument)
       ans <- database.runCommand(res).toFuture()
     } yield ans
+  }
 
 }
 
@@ -350,8 +362,11 @@ object MongoLoader extends MongoJsonSupport {
    * @return
    */
   private def showCollectionIndexes(database: MongoDatabase,
-                                    collectionName: String): Future[Seq[MongoIndex]] =
+                                    collectionName: String): Future[Seq[MongoIndex]] = {
+    import Implicits.global
+
     database.getCollection(collectionName).listIndexes().toFuture().map(convertMongoIndexes)
+  }
 
   /**
    *
@@ -361,6 +376,8 @@ object MongoLoader extends MongoJsonSupport {
    */
   private def showCollectionInfo(database: MongoDatabase,
                                  collectionName: String): Future[CollectionInfo] = {
+    import Implicits.global
+
     val indexes = showCollectionIndexes(database, collectionName)
       .map(_ (1).key)
 

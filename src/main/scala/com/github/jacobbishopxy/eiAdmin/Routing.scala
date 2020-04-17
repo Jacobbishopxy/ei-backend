@@ -59,6 +59,16 @@ object Routing extends MongoJsonSupport with ValidatorJsonSupport with Conjuncti
     }
   }
 
+  private val onDropCollection = path("drop-collection") {
+    get {
+      parameter(paramCollection) {collectionName =>
+        onSuccess(mongoLoader.dropCollection(collectionName)) {res =>
+          complete((StatusCodes.OK, res.toString))
+        }
+      }
+    }
+  }
+
   private val onModifyValidator = path("modify-validator") {
     post {
       parameter(paramCollection) { collectionName =>
@@ -137,6 +147,7 @@ object Routing extends MongoJsonSupport with ValidatorJsonSupport with Conjuncti
         onDoesCollectionExist,
         onShowCollection,
         onCreateCollection,
+        onDropCollection,
         onModifyValidator,
         onModifyCollection,
         onShowIndex,
