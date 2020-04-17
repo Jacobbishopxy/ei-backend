@@ -4,6 +4,10 @@
     
     - GET: `http://localhost:2020/ei/admin/show-collections`
 
+1. does-collection-exist
+
+    - GET: `http://localhost:2020/ei/admin/does-collection-exist?collection=demo`
+
 1. show-collection
 
     - GET: `http://localhost:2020/ei/admin/show-collection?collection=demo`

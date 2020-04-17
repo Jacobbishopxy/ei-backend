@@ -46,7 +46,7 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
     val createIdx = createIndex(collectionInfo)
 
     for {
-      ifExist <- isCollectionExist(collectionInfo.collectionName)
+      ifExist <- doesCollectionExist(collectionInfo.collectionName)
       _ <- if (!ifExist) createColl else throw new RuntimeException("collection already exists!")
       ans <- createIdx
     } yield ans
@@ -62,7 +62,7 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
   def modifyValidator(collectionName: String,
                       validatorContent: ValidatorContent): Future[Document] =
     for {
-      ifExist <- isCollectionExist(collectionName)
+      ifExist <- doesCollectionExist(collectionName)
       res <-
         if (ifExist) checkIfContainsPrimaryKeys(collectionName, validatorContent)
         else throw new RuntimeException("collection does not exist!")
@@ -81,7 +81,7 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
     val collectionName = collectionInfo.collectionName
 
     for {
-      ifExist <- isCollectionExist(collectionName)
+      ifExist <- doesCollectionExist(collectionName)
       res <-
         if (ifExist) showCollection(collectionName)
           .map(_.fields)
@@ -198,7 +198,7 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
    */
   private def ifExistThen[T](collectionName: String, fut: Future[T]) =
     for {
-      ifExist <- isCollectionExist(collectionName)
+      ifExist <- doesCollectionExist(collectionName)
       ans <- if (ifExist) fut else throw new RuntimeException("collection does not exist!")
     } yield ans
 

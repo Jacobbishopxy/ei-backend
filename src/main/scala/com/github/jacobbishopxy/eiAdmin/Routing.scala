@@ -29,6 +29,16 @@ object Routing extends MongoJsonSupport with ValidatorJsonSupport with Conjuncti
     }
   }
 
+  private val onDoesCollectionExist = path("does-collection-exist") {
+    get {
+      parameter(paramCollection) {collectionName =>
+        onSuccess(mongoLoader.doesCollectionExist(collectionName)) {res =>
+          complete((StatusCodes.OK, res.toJson))
+        }
+      }
+    }
+  }
+
   private val onShowCollection = path("show-collection") {
     get {
       parameter(paramCollection) { collectionName =>
@@ -124,6 +134,7 @@ object Routing extends MongoJsonSupport with ValidatorJsonSupport with Conjuncti
     pathPrefix("admin") {
       concat(
         onShowCollections,
+        onDoesCollectionExist,
         onShowCollection,
         onCreateCollection,
         onModifyValidator,

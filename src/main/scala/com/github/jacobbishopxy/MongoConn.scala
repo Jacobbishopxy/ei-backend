@@ -27,7 +27,7 @@ trait MongoConn {
   def listCollections(): Future[Seq[String]] =
     database.listCollectionNames().toFuture()
 
-  def isCollectionExist(name: String): Future[Boolean] =
+  def doesCollectionExist(name: String): Future[Boolean] =
     listCollections().map(_.contains(name))
 
   def dropCollection(name: String): Future[Completed] =
