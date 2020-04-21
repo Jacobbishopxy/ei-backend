@@ -18,7 +18,7 @@ object MongoModel {
   final case class FieldInfo(fieldName: String,
                              nameAlias: String,
                              fieldType: Int,
-                             indexOption: Option[IndexOption] = None,  // primary key if not None
+                             indexOption: Option[IndexOption] = None, // primary key if not None
                              description: Option[String] = None)
 
   final case class CollectionInfo(collectionName: String,
@@ -75,25 +75,6 @@ object MongoModel {
     implicit val indexOptionFormat: RootJsonFormat[IndexOption] = jsonFormat1(IndexOption)
     implicit val fieldInfoFormat: RootJsonFormat[FieldInfo] = jsonFormat5(FieldInfo)
     implicit val collectionInfoFormat: RootJsonFormat[CollectionInfo] = jsonFormat2(CollectionInfo)
-
-    implicit object AnyJsonFormat extends JsonFormat[Any] {
-      override def write(value: Any): JsValue = value match {
-        case n: Int => JsNumber(n)
-        case s: String => JsString(s)
-        case b: Boolean if b => JsTrue
-        case b: Boolean if !b => JsFalse
-        case _ => throw new RuntimeException(s"AnyJsonFormat write failed: ${value.toString}")
-      }
-
-      override def read(value: JsValue): Any = value match {
-        case JsNumber(n) => n.intValue
-        case JsString(s) => s
-        case JsTrue => true
-        case JsFalse => false
-        case _ => throw new RuntimeException(s"AnyJsonFormat read failed: ${value.toString}")
-      }
-    }
-
     implicit val addFieldFormat: RootJsonFormat[AddField] = jsonFormat4(AddField)
     implicit val delFieldFormat: RootJsonFormat[DelField] = jsonFormat1(DelField)
 
@@ -122,13 +103,13 @@ object MongoModel {
               description = fields
                 .get("description")
                 .map(_.convertTo[String])
-            ) else
-            DelField(
-              fieldName = fields
-                .get("fieldName")
-                .map(_.convertTo[String])
-                .getOrElse(throw new RuntimeException("fieldName required")),
             )
+          else DelField(
+            fieldName = fields
+              .get("fieldName")
+              .map(_.convertTo[String])
+              .getOrElse(throw new RuntimeException("fieldName required")),
+          )
         case _ => throw new RuntimeException(s"Invalid JSON format $json")
       }
     }
