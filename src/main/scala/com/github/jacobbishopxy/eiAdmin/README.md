@@ -144,15 +144,17 @@
     {
         "limit": 10,
         "filter": {
-            "and": {
-                "date": {
-                    "gt": 20190101,
-                    "lte": 20200501
+            "$and": [
+                {
+                    "date": {
+                        "$gt": 20190101,
+                        "$lte": 20200501
+                    }
                 },
-                "symbol": {
-                    "eq": "000002.SZ"
+                {
+                    "symbol": "000001.SZ"
                 }
-            }
+            ]
         }
     }
     ```
@@ -161,16 +163,17 @@
 
     - POST: `http://localhost:2020/ei/admin/delete-data?collection=demo`
     ```
-    {
-        "filter": {
-            "and": {
-                "symbol": {
-                    "eq": "000002.SZ"
-                },
+    "filter": {
+        "$and": [
+            {
                 "date": {
-                    "eq": 20200102
+                    "$gt": 20190101,
+                    "$lte": 20200501
                 }
+            },
+            {
+                "symbol": "000001.SZ"
             }
-        }
+        ]
     }
     ```
