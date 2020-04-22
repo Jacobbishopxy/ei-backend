@@ -2,7 +2,6 @@ package com.github.jacobbishopxy
 
 import MongoModel._
 
-import org.mongodb.scala.bson.BsonDocument
 import org.mongodb.scala.{Completed, Document, MongoDatabase}
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model._
@@ -135,7 +134,6 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
   }
 
   // todo: public method -- modify indexes
-
 
 
   /**
@@ -323,33 +321,46 @@ object MongoLoader extends MongoJsonSupport with QueryJsonSupport {
   }
 
   /**
+   * extract Mongo Collection Validator From Seq of Document
    *
    * @param seqDocument : Seq[Document]
    * @return
    */
-  private def extractMongoCollectionValidatorFromSeqDocument(seqDocument: Seq[Document]): MongoCollectionValidator =
-    seqDocument.head.toList(2)._2.asDocument().toJson.parseJson.convertTo[MongoCollectionValidator]
+  private def extractMCV(seqDocument: Seq[Document]): MongoCollectionValidator =
+    seqDocument
+      .head
+      .toList(2)
+      ._2
+      .asDocument()
+      .toJson
+      .parseJson
+      .convertTo[MongoCollectionValidator]
 
   /**
+   * convert Mongo Collection Validator to Fields
    *
    * @param mongoCollectionValidator : [[MongoCollectionValidator]]
    * @return
    */
-  private def convertMongoCollectionValidatorToFields(mongoCollectionValidator: MongoCollectionValidator,
-                                                      indexesMapping: Map[String, Int]): List[FieldInfo] =
-    mongoCollectionValidator.validator.$jsonSchema.properties.map {
-      case (k, v) =>
-        val indexOption = indexesMapping.get(k)
-          .map(i => IndexOption(if (i == 1) true else false))
+  private def convertMCV(mongoCollectionValidator: MongoCollectionValidator,
+                         indexesMapping: Map[String, Int]): List[FieldInfo] =
+    mongoCollectionValidator
+      .validator
+      .$jsonSchema
+      .properties
+      .map {
+        case (k, v) =>
+          val indexOption = indexesMapping.get(k)
+            .map(i => IndexOption(if (i == 1) true else false))
 
-        FieldInfo(
-          fieldName = k,
-          nameAlias = v.title,
-          indexOption = indexOption,
-          fieldType = MongoTypeMapping.stringToInt(v.bsonType),
-          description = Some(v.description)
-        )
-    }.toList
+          FieldInfo(
+            fieldName = k,
+            nameAlias = v.title,
+            indexOption = indexOption,
+            fieldType = MongoTypeMapping.stringToInt(v.bsonType),
+            description = Some(v.description)
+          )
+      }.toList
 
   /**
    *
@@ -361,7 +372,11 @@ object MongoLoader extends MongoJsonSupport with QueryJsonSupport {
                                     collectionName: String): Future[Seq[MongoIndex]] = {
     import Implicits.global
 
-    database.getCollection(collectionName).listIndexes().toFuture().map(convertMongoIndexes)
+    database
+      .getCollection(collectionName)
+      .listIndexes()
+      .toFuture()
+      .map(_.map(_.toJson.parseJson.convertTo[MongoIndex]))
   }
 
   /**
@@ -381,21 +396,13 @@ object MongoLoader extends MongoJsonSupport with QueryJsonSupport {
       .listCollections()
       .filter(Filters.eq("name", collectionName))
       .toFuture()
-      .map(extractMongoCollectionValidatorFromSeqDocument)
+      .map(extractMCV)
       .zip(indexes)
       .map { case (validator, indexes) =>
-        convertMongoCollectionValidatorToFields(validator, indexes)
+        convertMCV(validator, indexes)
       }
       .map(i => CollectionInfo(collectionName, i))
   }
-
-  /**
-   *
-   * @param seqDocument : Seq[Document]
-   * @return
-   */
-  private def convertMongoIndexes(seqDocument: Seq[Document]): Seq[MongoIndex] =
-    seqDocument.map(_.toJson.parseJson.convertTo[MongoIndex])
 
   /**
    *
@@ -429,7 +436,7 @@ object MongoLoader extends MongoJsonSupport with QueryJsonSupport {
 
   /**
    *
-   * @param queryContent: [[QueryContent]]
+   * @param queryContent : [[QueryContent]]
    * @return
    */
   private def genFilterFromQueryContent(queryContent: QueryContent): Document =

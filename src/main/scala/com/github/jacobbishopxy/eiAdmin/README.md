@@ -47,6 +47,10 @@
     }
     ```
 
+1. drop-collection
+
+    - GET: `http://localhost:2020/ei/admin/drop-collection?collection=demo`
+
 1. modify-validator
 
     - POST: `http://localhost:2020/ei/admin/modify-validator?collection=demo`
