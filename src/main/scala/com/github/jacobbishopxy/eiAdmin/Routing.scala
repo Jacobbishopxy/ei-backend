@@ -12,7 +12,7 @@ import spray.json._
 /**
  * Created by Jacob Xie on 3/23/2020
  */
-object Routing extends MongoJsonSupport with ValidatorJsonSupport with ConjunctionsJsonSupport {
+object Routing extends MongoJsonSupport with ValidatorJsonSupport with QueryJsonSupport {
 
   import com.github.jacobbishopxy.eiAdmin.Repo._
 

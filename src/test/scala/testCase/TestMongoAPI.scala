@@ -3,6 +3,7 @@ package testCase
 import com.typesafe.config.{Config, ConfigFactory}
 import org.mongodb.scala.Document
 import spray.json._
+import DefaultJsonProtocol._
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
@@ -18,11 +19,7 @@ object TestMongoAPI extends App with TestMongoAPIRepo {
   val repo = new MongoLoader(mongoUrl, "dev")
 
 
-  val filter = AND(
-    Map(
-      "username" -> FilterOptions(Some(JsString("MZ")), None, None, None, None)
-    )
-  )
+  val filter = ComplexQuery(Map("name" -> SimpleLogic($in=Some(Seq("MZ").map(_.toJson)))))
   val conditions = QueryContent(Some(10), Some(filter))
 
   val foo: Future[Seq[Document]] = repo.fetchData("user", conditions)

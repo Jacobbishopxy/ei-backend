@@ -122,44 +122,66 @@ object MongoModel {
    * query content json support
    */
 
-  final case class FilterOptions(eq: Option[JsValue],
-                                 gt: Option[JsValue],
-                                 lt: Option[JsValue],
-                                 gte: Option[JsValue],
-                                 lte: Option[JsValue])
-
-  type ConjunctionsType = Map[String, FilterOptions]
-
-  // todo: combine `FilterOptions` and `Conjunctions`
-
-  trait Conjunctions
-
-  final case class AND(and: ConjunctionsType) extends Conjunctions
-
-  final case class OR(or: ConjunctionsType) extends Conjunctions
-
-  case class QueryContent(limit: Option[Int], filter: Option[Conjunctions])
+  final case class SimpleLogic($not: Option[JsValue] = None,
+                               $in: Option[Seq[JsValue]] = None,
+                               $nin: Option[Seq[JsValue]] = None,
+                               $regx: Option[JsValue] = None,
+                               $gt: Option[JsValue] = None,
+                               $gte: Option[JsValue] = None,
+                               $lt: Option[JsValue] = None,
+                               $lte: Option[JsValue] = None,
+                               $bt: Option[(JsValue, JsValue)] = None,
+                               $exists: Option[JsValue] = None,
+                               $distinct: Option[JsValue] = None)
 
 
-  trait ConjunctionsJsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
-    implicit val filterOptionsFormat: RootJsonFormat[FilterOptions] = jsonFormat5(FilterOptions)
+  trait QueryType
 
-    implicit object conjunctionsFormat extends RootJsonFormat[Conjunctions] {
+  case class SimpleQuery(d: Map[String, JsValue]) extends QueryType
 
-      private def findSetFO(json: JsValue): ConjunctionsType =
-        json.convertTo[ConjunctionsType]
+  case class ComplexQuery(d: Map[String, SimpleLogic]) extends QueryType
 
-      override def write(obj: Conjunctions): JsValue = obj match {
-        case AND(and) => and.toJson
-        case OR(or) => or.toJson
+  case class OR($or: Seq[QueryType]) extends QueryType
+
+  case class AND($and: Seq[QueryType]) extends QueryType
+
+  final case class QueryContent(limit: Option[Int], filter: Option[QueryType])
+
+
+  trait QueryJsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
+
+    private def extractSeqJsValue(json: JsValue, key: String): Seq[QueryType] =
+      json.asJsObject.getFields(key).flatMap {
+        _.convertTo[List[JsValue]].map(QueryTypeFormat.read)
       }
 
-      override def read(json: JsValue): Conjunctions = json match {
+    implicit val simpleLogicFormat: RootJsonFormat[SimpleLogic] = jsonFormat11(SimpleLogic)
+
+    implicit object QueryTypeFormat extends RootJsonFormat[QueryType] {
+      override def write(obj: QueryType): JsValue = obj match {
+        case SimpleQuery(d) => d.toJson
+        case ComplexQuery(d) => d.toJson
+        case OR(d) => Map("$or" -> d.map(write).toJson).toJson
+        case AND(d) => Map("$and" -> d.map(write).toJson).toJson
+        case e: Throwable => throw new RuntimeException(s"Invalid $obj, $e")
+      }
+
+      override def read(json: JsValue): QueryType = json match {
         case JsObject(fields) =>
-          val res = fields.head
-          if (res._1 == "and") AND(findSetFO(res._2))
-          else if (res._1 == "or") OR(findSetFO(res._2))
-          else throw new RuntimeException(s"Invalid JSON format $json")
+          val res = fields.head // $and/$or only shows at the beginning of each nested structure
+          if (res._1 == "$and") AND(extractSeqJsValue(json, "$and"))
+          else if (res._1 == "$or") OR(extractSeqJsValue(json, "$or"))
+          else {
+            try {
+              ComplexQuery(json.convertTo[Map[String, SimpleLogic]])
+            } catch {
+              case _: Throwable => try {
+                SimpleQuery(json.convertTo[Map[String, JsValue]])
+              } catch {
+                case e: Throwable => throw new RuntimeException(e)
+              }
+            }
+          }
         case _ => throw new RuntimeException(s"Invalid JSON format $json")
       }
     }
@@ -168,3 +190,4 @@ object MongoModel {
   }
 
 }
+

@@ -136,11 +136,7 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
 
   // todo: public method -- modify indexes
 
-  private def getFilterFromQueryContent(queryContent: QueryContent): Bson =
-    queryContent.filter match {
-      case Some(v) => getFilter(v)
-      case None => BsonDocument()
-    }
+
 
   /**
    * get all data with conditions
@@ -153,7 +149,7 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
                 queryContent: QueryContent): Future[Seq[Document]] = {
 
 
-    val filter = getFilterFromQueryContent(queryContent)
+    val filter = genFilterFromQueryContent(queryContent)
     val cf = collection(collectionName).find(filter)
     val fut = queryContent.limit.fold(cf) { i => cf.limit(i) }.toFuture()
 
@@ -188,7 +184,7 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
   def deleteData(collectionName: String,
                  queryContent: QueryContent): Future[DeleteResult] = {
     val fut = collection(collectionName)
-      .deleteMany(getFilterFromQueryContent(queryContent))
+      .deleteMany(genFilterFromQueryContent(queryContent))
       .toFuture()
 
     ifExistThen(collectionName, fut)
@@ -253,7 +249,7 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
 }
 
 
-object MongoLoader extends MongoJsonSupport {
+object MongoLoader extends MongoJsonSupport with QueryJsonSupport {
 
   import Utilities.MongoTypeMapping
 
@@ -433,55 +429,14 @@ object MongoLoader extends MongoJsonSupport {
 
   /**
    *
-   * @param d : [[JsValue]]
+   * @param queryContent: [[QueryContent]]
    * @return
    */
-  private def jsValueConvert(d: JsValue): Any = d match {
-    case JsString(v) => v
-    case JsNumber(v) => v.toDouble
-    case JsTrue => true
-    case JsFalse => false
-    case JsNull => None
-    case _ => throw new RuntimeException(s"Invalid JSON format: ${d.toString}")
-  }
-
-  /**
-   *
-   * @param name          : String
-   * @param filterOptions : [[FilterOptions]]
-   * @return
-   */
-  private def extractFilter(name: String, filterOptions: FilterOptions): Bson = {
-
-    val eq = filterOptions.eq.fold(Option.empty[Bson]) { i => Some(Filters.eq(name, jsValueConvert(i))) }
-    val gt = filterOptions.gt.fold(Option.empty[Bson]) { i => Some(Filters.gt(name, jsValueConvert(i))) }
-    val lt = filterOptions.lt.fold(Option.empty[Bson]) { i => Some(Filters.lt(name, jsValueConvert(i))) }
-    val gte = filterOptions.gte.fold(Option.empty[Bson]) { i => Some(Filters.gte(name, jsValueConvert(i))) }
-    val lte = filterOptions.lte.fold(Option.empty[Bson]) { i => Some(Filters.lte(name, jsValueConvert(i))) }
-
-    val gatheredFilters = List(eq, gt, lt, gte, lte).foldLeft(List.empty[Bson]) {
-      case (acc, ob) => ob match {
-        case None => acc
-        case Some(v) => acc :+ v
-      }
+  private def genFilterFromQueryContent(queryContent: QueryContent): Document =
+    queryContent.filter match {
+      case Some(v) => Document(v.toJson.toString)
+      case None => Document()
     }
-    Filters.and(gatheredFilters: _*)
-  }
-
-  // todo: redo Conjunction, unmarshall and/or recursively
-  /**
-   *
-   * @param filter : [[Conjunctions]]
-   * @return
-   */
-  private def getFilter(filter: Conjunctions): Bson = filter match {
-    case AND(and) =>
-      val res = and.map { case (name, filterOptions) => extractFilter(name, filterOptions) }.toList
-      Filters.and(res: _*)
-    case OR(or) =>
-      val res = or.map { case (name, filterOptions) => extractFilter(name, filterOptions) }.toList
-      Filters.or(res: _*)
-  }
 
 }
 
