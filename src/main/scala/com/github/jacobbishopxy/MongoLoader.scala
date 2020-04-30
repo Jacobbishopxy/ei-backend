@@ -1,6 +1,7 @@
 package com.github.jacobbishopxy
 
 import MongoModel._
+import com.github.jacobbishopxy.Utilities.MongoTypeMapping
 
 import org.mongodb.scala.{Completed, Document, MongoDatabase}
 import org.mongodb.scala.bson.conversions.Bson
@@ -46,10 +47,20 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
       ifExist <- doesCollectionExist(collectionInfo.collectionName)
       _ <-
         if (!ifExist) database.createCollection(collectionInfo.collectionName, co).toFuture()
-        else throw new RuntimeException("collection already exists!")
+        else throw new RuntimeException(s"collection: ${collectionInfo.collectionName} already exists!")
       ans <- createIndex(collectionInfo)
     } yield ans
   }
+
+  /**
+   * get a collection field type
+   *
+   * @param collectionName : String
+   * @return
+   */
+  def showFieldType(collectionName: String): Future[Map[String, String]] =
+    showCollectionFieldType(database, collectionName)
+
 
   /**
    * modify collection's validator, [[ValidatorContent]] cannot contain primary keys
@@ -66,7 +77,7 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
       ifExist <- doesCollectionExist(collectionName)
       res <-
         if (ifExist) checkIfContainsPrimaryKeys(collectionName, validatorContent)
-        else throw new RuntimeException("collection does not exist!")
+        else throw new RuntimeException(s"collection: $collectionName does not exist!")
       ans <- if (res) Future(Document("error" -> "Cannot modify primary keys"))
       else forceModifyCollectionValidator(collectionName, validatorContent)
     } yield ans
@@ -90,7 +101,7 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
         if (ifExist) showCollection(collectionName)
           .map(_.fields)
           .map(genValidatorContent(_, collectionInfo.fields))
-        else throw new RuntimeException("collection does not exist!")
+        else throw new RuntimeException(s"collection: $collectionName does not exist!")
       ans <- modifyValidator(collectionName, res)
     } yield ans
   }
@@ -148,7 +159,7 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
 
 
     val filter = genFilterFromQueryContent(queryContent)
-    val cf = collection(collectionName).find(filter)
+    val cf = collection(collectionName).find(filter).projection(Projections.excludeId())
     val fut = queryContent.limit.fold(cf) { i => cf.limit(i) }.toFuture()
 
     ifExistThen(collectionName, fut)
@@ -164,7 +175,7 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
    */
   def insertData(collectionName: String,
                  data: Seq[JsValue]): Future[Completed] = {
-    val d = data.map(_.toString()).map(Document(_))
+    val d = data.map(_.toString).map(Document(_))
     val fut = collection(collectionName).insertMany(d).toFuture()
 
     ifExistThen(collectionName, fut)
@@ -200,7 +211,7 @@ class MongoLoader(connectionString: String, databaseName: String) extends MongoC
 
     for {
       ifExist <- doesCollectionExist(collectionName)
-      ans <- if (ifExist) fut else throw new RuntimeException("collection does not exist!")
+      ans <- if (ifExist) fut else throw new RuntimeException(s"collection: $collectionName does not exist!")
     } yield ans
   }
 
@@ -252,7 +263,7 @@ object MongoLoader extends MongoJsonSupport with QueryJsonSupport {
   import Utilities.MongoTypeMapping
 
 
-  // todo: projecting fields (limit the fields returned)
+  // todo: projecting fields (query wanted fields)
 
   /**
    *
@@ -385,6 +396,37 @@ object MongoLoader extends MongoJsonSupport with QueryJsonSupport {
    * @param collectionName : String
    * @return
    */
+  private def showRawCollectionInfo(database: MongoDatabase,
+                                    collectionName: String) =
+    database
+      .listCollections()
+      .filter(Filters.eq("name", collectionName))
+      .toFuture()
+
+  /**
+   *
+   * @param database       : [[MongoDatabase]]
+   * @param collectionName : String
+   * @return
+   */
+  private def showCollectionFieldType(database: MongoDatabase,
+                                      collectionName: String): Future[Map[String, String]] = {
+    import Implicits.global
+
+    showRawCollectionInfo(database, collectionName)
+      .map(extractMCV)
+      .map(_.validator.$jsonSchema.properties)
+      .map(_.map {
+        case (k, v) => k -> v.bsonType
+      })
+  }
+
+  /**
+   *
+   * @param database       : [[MongoDatabase]]
+   * @param collectionName : String
+   * @return
+   */
   private def showCollectionInfo(database: MongoDatabase,
                                  collectionName: String): Future[CollectionInfo] = {
     import Implicits.global
@@ -392,10 +434,7 @@ object MongoLoader extends MongoJsonSupport with QueryJsonSupport {
     val indexes = showCollectionIndexes(database, collectionName)
       .map(_ (1).key)
 
-    database
-      .listCollections()
-      .filter(Filters.eq("name", collectionName))
-      .toFuture()
+    showRawCollectionInfo(database, collectionName)
       .map(extractMCV)
       .zip(indexes)
       .map { case (validator, indexes) =>

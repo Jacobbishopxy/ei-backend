@@ -16,7 +16,7 @@ object Routing {
   val route: Route =
     pathPrefix("utils") {
       concat(
-        path("grid-layout-all") {
+        path("grid-layouts") {
           complete(fetchAll())
         },
         path("grid-layout") {
@@ -34,6 +34,9 @@ object Routing {
               }
             }
           )
+        },
+        path("show-panels") {
+          complete(getAllPanelsName)
         }
       )
     }

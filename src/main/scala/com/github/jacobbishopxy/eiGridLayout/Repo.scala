@@ -10,9 +10,10 @@ import org.bson.codecs.configuration.CodecRegistries.{fromProviders, fromRegistr
 import org.bson.codecs.configuration.CodecRegistry
 import org.mongodb.scala.result.UpdateResult
 import spray.json.DefaultJsonProtocol._
-import spray.json.RootJsonFormat
+import spray.json.{JsValue, RootJsonFormat}
 
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits
 
 /**
  * Created by Jacob Xie on 3/17/2020
@@ -20,9 +21,12 @@ import scala.concurrent.Future
 object Repo {
 
   case class Coordinate(i: String, x: Int, y: Int, h: Int, w: Int)
+
   case class Content(title: String,
                      contentType: String,
-                     hyperLink: String)
+                     hyperLink: String,
+                     contentConfig: Option[JsValue])
+
   case class GridModel(coordinate: Coordinate, content: Content)
 
   case class GridLayout(panel: String, layouts: Seq[GridModel])
@@ -37,7 +41,7 @@ object Repo {
 
 
   implicit val coordinateFormat: RootJsonFormat[Coordinate] = jsonFormat5(Coordinate)
-  implicit val contentFormat: RootJsonFormat[Content] = jsonFormat3(Content)
+  implicit val contentFormat: RootJsonFormat[Content] = jsonFormat4(Content)
   implicit val gridModelFormat: RootJsonFormat[GridModel] = jsonFormat2(GridModel)
   implicit val gridLayoutFormat: RootJsonFormat[GridLayout] = jsonFormat2(GridLayout)
 
@@ -60,4 +64,9 @@ object Repo {
   def upsertItem(gl: GridLayout): Future[UpdateResult] =
     collection.replaceOne(equal("panel", gl.panel), gl, ReplaceOptions().upsert(true)).toFuture()
 
+  def getAllPanelsName: Future[Seq[String]] = {
+    import Implicits.global
+
+    collection.find().toFuture().map(_.map(_.panel))
+  }
 }

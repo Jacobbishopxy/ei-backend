@@ -1,13 +1,14 @@
 package com.github.jacobbishopxy
 
 import org.bson.BsonType
+import spray.json._
 
 /**
  * Created by Jacob Xie on 3/26/2020
  */
 object Utilities {
 
-  object MongoTypeMapping {
+  object MongoTypeMapping extends DefaultJsonProtocol {
     def intToBsonType(d: Int): BsonType = d match {
       case 1 => BsonType.DOUBLE
       case 2 => BsonType.STRING
@@ -79,6 +80,15 @@ object Utilities {
       case "decimal" => 19
       case _ => throw new RuntimeException(s"bsonTypeToInt unmatched item: $d")
     }
+
+    def convertJsValueByType(jsValue: JsValue, stringType: String): Any = stringType match {
+      case "double" => jsValue.convertTo[Double]
+      case "string" => jsValue.convertTo[String]
+      case "bool" => jsValue.convertTo[Boolean]
+      case "date" => jsValue.convertTo[String]
+      case "int" => jsValue.convertTo[Int]
+    }
+
   }
 
 }

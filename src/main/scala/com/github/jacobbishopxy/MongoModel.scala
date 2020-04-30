@@ -68,6 +68,24 @@ object MongoModel {
       jsonFormat1(MongoCollectionValidator)
     implicit val mongoIndexFormat: RootJsonFormat[MongoIndex] =
       jsonFormat5(MongoIndex)
+
+    implicit object AnyJsonFormat extends JsonFormat[Any] {
+      override def write(value: Any): JsValue = value match {
+        case n: Int => JsNumber(n)
+        case s: String => JsString(s)
+        case b: Boolean if b => JsTrue
+        case b: Boolean if !b => JsFalse
+        case _ => throw new RuntimeException(s"AnyJsonFormat write failed: ${value.toString}")
+      }
+
+      override def read(value: JsValue): Any = value match {
+        case JsNumber(n) => n.intValue
+        case JsString(s) => s
+        case JsTrue => true
+        case JsFalse => false
+        case _ => throw new RuntimeException(s"AnyJsonFormat read failed: ${value.toString}")
+      }
+    }
   }
 
   trait ValidatorJsonSupport extends SprayJsonSupport with DefaultJsonProtocol {

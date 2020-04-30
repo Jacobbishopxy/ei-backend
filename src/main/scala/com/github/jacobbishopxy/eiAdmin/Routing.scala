@@ -69,6 +69,16 @@ object Routing extends MongoJsonSupport with ValidatorJsonSupport with QueryJson
     }
   }
 
+  private val onShowFieldType = path("show-field-type") {
+    get {
+      parameter(paramCollection) {collectionName =>
+        onSuccess(mongoLoader.showFieldType(collectionName)) {res =>
+          complete((StatusCodes.OK, res.toJson))
+        }
+      }
+    }
+  }
+
   private val onModifyValidator = path("modify-validator") {
     post {
       parameter(paramCollection) { collectionName =>
@@ -148,6 +158,7 @@ object Routing extends MongoJsonSupport with ValidatorJsonSupport with QueryJson
         onShowCollection,
         onCreateCollection,
         onDropCollection,
+        onShowFieldType,
         onModifyValidator,
         onModifyCollection,
         onShowIndex,
