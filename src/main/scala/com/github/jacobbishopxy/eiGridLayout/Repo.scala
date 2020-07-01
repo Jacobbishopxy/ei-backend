@@ -24,7 +24,7 @@ object Repo {
 
   case class Content(title: String,
                      contentType: String,
-                     hyperLink: String,
+                     contentData: String,
                      contentConfig: Option[JsValue])
 
   case class GridModel(coordinate: Coordinate, content: Content)

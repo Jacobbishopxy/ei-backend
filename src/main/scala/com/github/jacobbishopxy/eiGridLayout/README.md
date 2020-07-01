@@ -24,7 +24,7 @@
                 "content": {
                     "title": "t1",
                     "contentType": "embedLink",
-                    "hyperLink": ""
+                    "contentData": ""
                 }
             },
             {
@@ -38,7 +38,7 @@
                 "content": {
                     "title": "t2",
                     "contentType": "embedLink",
-                    "hyperLink": ""
+                    "contentData": ""
                 }
             }
         ]
