@@ -3,7 +3,7 @@ import com.typesafe.config.{Config, ConfigFactory}
 import org.bson.BsonType
 import org.mongodb.scala._
 import org.mongodb.scala.bson.codecs.Macros._
-import org.mongodb.scala.bson.codecs.DEFAULT_CODEC_REGISTRY
+import org.mongodb.scala.MongoClient.DEFAULT_CODEC_REGISTRY
 import org.mongodb.scala.bson.annotations.BsonProperty
 import org.mongodb.scala.model.{CreateCollectionOptions, Filters, Updates, ValidationOptions}
 import org.mongodb.scala.result.DeleteResult

@@ -3,7 +3,7 @@ package com.github.jacobbishopxy.eiGridLayout
 import com.typesafe.config.{Config, ConfigFactory}
 import org.mongodb.scala._
 import org.mongodb.scala.bson.codecs.Macros._
-import org.mongodb.scala.bson.codecs.DEFAULT_CODEC_REGISTRY
+import org.mongodb.scala.MongoClient.DEFAULT_CODEC_REGISTRY
 import org.mongodb.scala.model.Filters._
 import org.mongodb.scala.model.ReplaceOptions
 import org.bson.codecs.configuration.CodecRegistries.{fromProviders, fromRegistries}
@@ -22,10 +22,11 @@ object Repo {
 
   case class Coordinate(i: String, x: Int, y: Int, h: Int, w: Int)
 
+  // todo: support json type, this whole Repo should change to untyped Repo
   case class Content(title: String,
                      contentType: String,
                      contentData: String,
-                     contentConfig: Option[JsValue])
+                     contentConfig: Option[String])
 
   case class GridModel(coordinate: Coordinate, content: Content)
 
