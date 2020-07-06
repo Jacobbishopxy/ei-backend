@@ -10,7 +10,7 @@ import org.bson.codecs.configuration.CodecRegistries.{fromProviders, fromRegistr
 import org.bson.codecs.configuration.CodecRegistry
 import org.mongodb.scala.result.UpdateResult
 import spray.json.DefaultJsonProtocol._
-import spray.json.{JsValue, RootJsonFormat}
+import spray.json.RootJsonFormat
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits

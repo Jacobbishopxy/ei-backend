@@ -1,149 +1,99 @@
 
 import java.nio.ByteBuffer
-import java.nio.channels.AsynchronousFileChannel
 import java.nio.charset.StandardCharsets
-import java.nio.file.{Path, Paths, StandardOpenOption}
-
-import scala.util.Success
 
 import org.bson.types.ObjectId
-
 import org.mongodb.scala.model.Filters
 import org.mongodb.scala.gridfs._
-import org.mongodb.scala.gridfs.helpers.AsynchronousChannelHelper.channelToOutputStream
-import org.mongodb.scala.gridfs.helpers.AsyncStreamHelper.toAsyncInputStream
 import org.mongodb.scala._
+
 import DevMongoGridFSHelpers._
 
 /**
  * Created by jacob on 7/5/2020
  *
- * https://github.com/mongodb/mongo-scala-driver/blob/master/examples/src/test/scala/tour/GridFSTour.scala
+ * https://mongodb.github.io/mongo-java-driver/4.1/driver-scala/tutorials/gridfs/
  */
 object DevMongoGridFS extends App with DevMongoRepo {
 
   override val database: MongoDatabase = mongoClient.getDatabase("dev2")
 
-  val gridFSBucket = GridFSBucket(database)
+  /*
+  Create a GridFS Bucket
+
+  GridFS stores files in two collections: a `chunks` collection stores the file chunks, and a `files` collection
+  stores file metadata. The two collections are in a common bucket and the collection names are prefixed with
+  the bucket name
+   */
+  val gridFSBucket: GridFSBucket = GridFSBucket(database, "files")
+
+  /*
+  Upload to GridFS
+
+  The `GridFSBucket.uploadFromObservable` methods read the contents of a `Observable[ByteBuffer]` and save it to
+  the `GridFSBucket`.
+
+  You can use the `GridFSUploadOptions` to configure the chunk size or include additional metadata.
+   */
 
   // Get the input stream
-  val streamToUploadFrom = toAsyncInputStream("MongoDB Tutorial...".getBytes(StandardCharsets.UTF_8))
+  val observableToUploadFrom: Observable[ByteBuffer] = Observable(
+    Seq(ByteBuffer.wrap("MongoDB Tutorial..".getBytes(StandardCharsets.UTF_8)))
+  )
 
   // Create some custom options
-  val options = new GridFSUploadOptions()
-    .chunkSizeBytes(1024 * 1204)
+  val options: GridFSUploadOptions = new GridFSUploadOptions()
+    .chunkSizeBytes(358400)
     .metadata(Document("type" -> "presentation"))
 
-  val fileId = gridFSBucket
-    .uploadFromStream("mongodb-tutorial", streamToUploadFrom, options)
+  val fileId: ObjectId = gridFSBucket
+    .uploadFromObservable("mongodb-tutorial", observableToUploadFrom, options)
     .headResult()
-  streamToUploadFrom.close().headResult()
 
   /*
-  OpenUploadStream Example
-   */
-  // Get some data to write
-  val data = ByteBuffer.wrap("Data to upload into GridFS".getBytes(StandardCharsets.UTF_8))
+  Find Files Stored in GridFS
 
-  val uploadStream = gridFSBucket.openUploadStream("sampleData")
-  uploadStream.write(data).headResult()
-  uploadStream.close().headResult()
-
-  /*
-  Find documents
+  To find the files stored in the `GridFSBucket` use the `find` method.
    */
-  println("File names:")
+
+  // print out the filename of each file stored:
   gridFSBucket
     .find()
     .results()
     .foreach(f => println(s" - ${f.getFilename}"))
 
-  /*
-  Find documents with a filter
-   */
+  // provide a custom filter to limit the results returned
   gridFSBucket
     .find(Filters.equal("metadata.contentType", "image/png"))
     .results()
     .foreach(f => println(s" > ${f.getFilename}"))
 
   /*
-  DownloadToStream
+  Download from GridFS
+
+  The `downloadToObservable` methods return a `Observable[ByteBuffer]` that reads the contents from MongoDB.
    */
-  val outputPath = Paths.get("./tmp/mongodb-tutorial.txt")
-  var streamToDownloadTo = AsynchronousFileChannel
-    .open(
-      outputPath,
-      StandardOpenOption.CREATE_NEW,
-      StandardOpenOption.WRITE,
-      StandardOpenOption.DELETE_ON_CLOSE
-    )
-  gridFSBucket
-    .downloadToStream(fileId, channelToOutputStream(streamToDownloadTo))
-    .headResult()
-  streamToDownloadTo.close()
+
+  // download a file by its file `_id`
+  val downloadById: Seq[ByteBuffer] = gridFSBucket
+    .downloadToObservable(fileId).results()
+
+  // download a file by its filename
+  val downloadOptions: GridFSDownloadOptions = new GridFSDownloadOptions().revision(0)
+  val downloadByName: Seq[ByteBuffer] = gridFSBucket
+    .downloadToObservable("mongodb-tutorial", downloadOptions).results()
 
   /*
-  DownloadToStream by name
+  Rename files
    */
-  streamToDownloadTo = AsynchronousFileChannel
-    .open(
-      outputPath,
-      StandardOpenOption.CREATE_NEW,
-      StandardOpenOption.WRITE,
-      StandardOpenOption.DELETE_ON_CLOSE
-    )
-  val downloadOptions = new GridFSDownloadOptions().revision(0)
-  gridFSBucket
-    .downloadToStream("mongodb-tutorial", channelToOutputStream(streamToDownloadTo), downloadOptions)
-    .headResult()
-  streamToDownloadTo.close()
+
+  gridFSBucket.rename(fileId, "mongodbTutorial").printResults()
 
   /*
-  OpenDownloadStream
+  Delete files
    */
-  val dstByteBuffer = ByteBuffer.allocate(1024 * 1024)
-  val downloadStream = gridFSBucket.openDownloadStream(fileId)
-  downloadStream
-    .read(dstByteBuffer)
-    .map(result => {
-      dstByteBuffer.flip()
-      val bytes = new Array[Byte](result)
-      dstByteBuffer.get(bytes)
-      println(new String(bytes, StandardCharsets.UTF_8))
-    })
-    .headResult()
 
-  /*
-  OpenDownloadStream by name
-   */
-  println("By name")
-  dstByteBuffer.clear()
-  val downloadStreamByName = gridFSBucket.openDownloadStream("sampleData")
-  downloadStreamByName
-    .read(dstByteBuffer)
-    .map(result => {
-      dstByteBuffer.flip()
-      val bytes = new Array[Byte](result)
-      dstByteBuffer.get(bytes)
-      println(new String(bytes, StandardCharsets.UTF_8))
-    })
-    .headResult()
+  gridFSBucket.delete(fileId).printResults()
 
-  /*
-  Rename
-   */
-  gridFSBucket.rename(fileId, "mongodbTutorial").andThen({
-    case Success(r) => println("renamed")
-  }).results()
-  println("renamed")
 
-  /*
-  Delete
-   */
-  gridFSBucket.delete(fileId).results()
-  println("deleted")
-
-  // Final cleanup
-  database.drop().results()
-  println("Finished")
 }
