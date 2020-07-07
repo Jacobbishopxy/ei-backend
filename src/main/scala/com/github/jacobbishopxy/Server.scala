@@ -13,7 +13,7 @@ import scala.concurrent.ExecutionContextExecutor
  */
 object Server extends App {
 
-  import eiGridLayout.Routing.{route => gridLayoutRoute}
+  import eiDashboard.Routing.{route => eiDashboardRoute}
   import eiAdmin.Routing.{route => eiAdminRoute}
 
   implicit val system: ActorSystem = ActorSystem("Server")
@@ -22,7 +22,7 @@ object Server extends App {
   val route = cors() {
     pathPrefix("ei") {
       concat(
-        gridLayoutRoute,
+        eiDashboardRoute,
         eiAdminRoute
       )
     }
