@@ -1,7 +1,10 @@
 package com.github.jacobbishopxy
 
+import com.typesafe.config.ConfigFactory
 import org.bson.BsonType
 import spray.json._
+
+import scala.jdk.CollectionConverters._
 
 /**
  * Created by Jacob Xie on 3/26/2020
@@ -90,5 +93,18 @@ object Utilities {
     }
 
   }
+
+
+  def toMap(hashMap: AnyRef): Map[String, AnyRef] =
+    hashMap.asInstanceOf[java.util.Map[String, AnyRef]].asScala.toMap
+
+  def toList(list: AnyRef): List[AnyRef] =
+    list.asInstanceOf[java.util.List[AnyRef]].asScala.toList
+
+  case class MongoConfig(url: String, db: String)
+
+  def getMongoConfig(name: String): Map[String, String] =
+    toMap(ConfigFactory.load.getAnyRef(s"ei-backend.$name"))
+      .map { case (k, v) => k -> v.toString }
 
 }
