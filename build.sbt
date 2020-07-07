@@ -1,6 +1,6 @@
 name := "ei-backend"
 
-version := "0.0.2"
+version := "0.0.3"
 scalacOptions ++= Seq("-deprecation", "-feature")
 
 val akkaHttpVersion = "10.1.11"

@@ -5,7 +5,7 @@ import org.mongodb.scala._
 import org.mongodb.scala.bson.codecs.Macros._
 import org.mongodb.scala.MongoClient.DEFAULT_CODEC_REGISTRY
 import org.mongodb.scala.bson.annotations.BsonProperty
-import org.mongodb.scala.model.{CreateCollectionOptions, Filters, Updates, ValidationOptions}
+import org.mongodb.scala.model.{CreateCollectionOptions, Filters, Updates, ValidationOptions, Projections}
 import org.mongodb.scala.result.DeleteResult
 import org.bson.codecs.configuration.CodecRegistries.{fromProviders, fromRegistries}
 import org.bson.codecs.configuration.CodecRegistry
@@ -23,24 +23,34 @@ object DevMongo extends App with DevMongoRepo {
 
   /**
    * This demo shows how to insert & query typed data (using `codecRegistry`)
+   * Projection for querying specified fields
    */
 
   // ADT
   final case class Cord(x: Int, y: Int)
+
   final case class InfoDB(@BsonProperty("_id") id: Int,
                           @BsonProperty("name") dbName: String,
                           @BsonProperty("type") dbType: String,
                           count: Int,
                           info: Cord)
 
+  final case class SimpleInfoDB(@BsonProperty("name") dbName: String,
+                                @BsonProperty("type") dbType: String)
+
   val codecRegistry: CodecRegistry =
-    fromRegistries(fromProviders(classOf[Cord], classOf[InfoDB]), DEFAULT_CODEC_REGISTRY)
+    fromRegistries(fromProviders(
+      classOf[Cord],
+      classOf[InfoDB],
+      classOf[SimpleInfoDB]
+    ), DEFAULT_CODEC_REGISTRY)
 
   val db: MongoDatabase = database.withCodecRegistry(codecRegistry)
   val collection: MongoCollection[InfoDB] = db.getCollection("test")
+  val collectionSimple: MongoCollection[SimpleInfoDB] = db.getCollection("test")
 
 
-  val infoDB = InfoDB(1, "Postgres", "database", 2, Cord(233, 135)) // fake data
+  val infoDB = InfoDB(3, "Postgres", "database", 2, Cord(233, 135)) // fake data
 
   val insertExe = Await.result(collection.insertOne(infoDB).toFuture(), 10.seconds) // execute action
   println(insertExe)
@@ -50,6 +60,9 @@ object DevMongo extends App with DevMongoRepo {
 
   val que = Await.result(collection.find(Filters.eq("name", "Postgres")).toFuture(), 10.seconds)
   println(que)
+
+  val res1 = Await.result(collectionSimple.find().projection(Projections.include("name", "type")).toFuture(), 10.seconds)
+  println(res1)
 
 }
 
@@ -67,6 +80,7 @@ object DevMongo1 extends App with DevMongoRepo {
       case b: Boolean if !b => JsFalse
       case _ => throw new RuntimeException(s"AnyJsonFormat write failed: ${value.toString}")
     }
+
     override def read(value: JsValue): Any = value match {
       case JsNumber(n) => n.intValue
       case JsString(s) => s
@@ -277,7 +291,9 @@ object DevMongo5 extends App with DevMongoRepo {
   }
 
   trait ValidatorAction
+
   case class AddEle(name: String, $type: Int) extends ValidatorAction
+
   case class DelEle(name: String) extends ValidatorAction
 
   // pure
@@ -311,7 +327,7 @@ object DevMongo5 extends App with DevMongoRepo {
 trait DevMongoRepo {
 
   val config: Config = ConfigFactory.load.getConfig("ei-backend")
-  val mongoUrl: String = config.getString("mongo.url")
+  val mongoUrl: String = config.getString("mongo-dev.dev")
   val mongoClient: MongoClient = MongoClient(mongoUrl)
   val database: MongoDatabase = mongoClient.getDatabase("dev")
 
