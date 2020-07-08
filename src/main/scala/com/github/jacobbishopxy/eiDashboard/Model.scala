@@ -12,8 +12,6 @@ import spray.json.RootJsonFormat
  */
 object Model {
 
-  trait GL
-
   case class Coordinate(i: String, x: Int, y: Int, h: Int, w: Int)
 
   case class Content(title: String,
@@ -23,9 +21,9 @@ object Model {
 
   case class GridModel(coordinate: Coordinate, content: Content)
 
-  case class GridLayout(symbol: String, panel: String, layouts: Seq[GridModel]) extends GL
+  case class GridLayout(template: String, panel: String, layouts: Seq[GridModel])
 
-  case class GridSymbolPanel(symbol: String, panel: String) extends GL
+  case class GridTemplatePanel(template: String, panel: String)
 
   val CRGridLayout: CodecRegistry =
     fromRegistries(fromProviders(
@@ -33,7 +31,7 @@ object Model {
       classOf[Content],
       classOf[GridModel],
       classOf[GridLayout],
-      classOf[GridSymbolPanel],
+      classOf[GridTemplatePanel],
     ), DEFAULT_CODEC_REGISTRY)
 
 
@@ -41,6 +39,6 @@ object Model {
   implicit val contentFormat: RootJsonFormat[Content] = jsonFormat4(Content)
   implicit val gridModelFormat: RootJsonFormat[GridModel] = jsonFormat2(GridModel)
   implicit val gridLayoutFormat: RootJsonFormat[GridLayout] = jsonFormat3(GridLayout)
-  implicit val gridSPFormat: RootJsonFormat[GridSymbolPanel] = jsonFormat2(GridSymbolPanel)
+  implicit val gridTPFormat: RootJsonFormat[GridTemplatePanel] = jsonFormat2(GridTemplatePanel)
 
 }

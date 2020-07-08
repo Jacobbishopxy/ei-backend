@@ -23,8 +23,8 @@ object Repo {
     case (k, v) => k -> MongoClient(v).getDatabase(k)
   }
 
-  private def getCollection[T: ClassTag](db: String,
-                                         collectionName: String): MongoCollection[T] =
+  def getCollection[T: ClassTag](db: String,
+                                 collectionName: String): MongoCollection[T] =
     mongoDBs
       .getOrElse(db, throw new RuntimeException(s"database $db not found!"))
       .getCollection[T](collectionName)
@@ -35,21 +35,21 @@ object Repo {
       .find()
       .toFuture()
 
-  def fetchAllBySymbol(db: String, collectionName: String, symbol: String): Future[Seq[GridLayout]] =
+  def fetchAllByTemplate(db: String, collectionName: String, template: String): Future[Seq[GridLayout]] =
     getCollection[GridLayout](db, collectionName)
-      .find(equal("symbol", symbol))
+      .find(equal("template", template))
       .toFuture()
 
-  private val projectionSymbolPanel = Projections.include("symbol", "panel")
+  private val projectionSymbolPanel = Projections.include("template", "panel")
 
-  def fetchAllPanelBySymbol(db: String, collectionName: String, symbol: String): Future[Seq[GridSymbolPanel]] =
-    getCollection[GridSymbolPanel](db, collectionName)
-      .find(equal("symbol", symbol))
+  def fetchAllPanelByTemplate(db: String, collectionName: String, symbol: String): Future[Seq[GridTemplatePanel]] =
+    getCollection[GridTemplatePanel](db, collectionName)
+      .find(equal("template", symbol))
       .projection(projectionSymbolPanel)
       .toFuture()
 
-  def fetchItem(db: String, collectionName: String, symbol: String, panel: String): Future[GridLayout] = {
-    val cond = and(equal("symbol", symbol), equal("panel", panel))
+  def fetchItem(db: String, collectionName: String, template: String, panel: String): Future[GridLayout] = {
+    val cond = and(equal("template", template), equal("panel", panel))
     getCollection[GridLayout](db, collectionName)
       .find(cond)
       .first()
@@ -57,24 +57,24 @@ object Repo {
   }
 
   def updateItem(db: String, collectionName: String, gl: GridLayout): Future[UpdateResult] = {
-    val cond = and(equal("symbol", gl.symbol), equal("panel", gl.panel))
+    val cond = and(equal("template", gl.template), equal("panel", gl.panel))
     getCollection[GridLayout](db, collectionName)
       .replaceOne(cond, gl)
       .toFuture()
   }
 
   def upsertItem(db: String, collectionName: String, gl: GridLayout): Future[UpdateResult] = {
-    val cond = and(equal("symbol", gl.symbol), equal("panel", gl.panel))
+    val cond = and(equal("template", gl.template), equal("panel", gl.panel))
     getCollection[GridLayout](db, collectionName)
       .replaceOne(cond, gl, ReplaceOptions().upsert(true))
       .toFuture()
   }
 
-  def fetchAllSymbols(db: String, collectionName: String): Future[List[String]] = {
+  def fetchAllTemplates(db: String, collectionName: String): Future[List[String]] = {
     import Implicits.global
 
-    val raw = getCollection[GridSymbolPanel](db, collectionName).find().toFuture()
-    raw.map(_.map(_.symbol).toList.distinct)
+    val raw = getCollection[GridTemplatePanel](db, collectionName).find().toFuture()
+    raw.map(_.map(_.template).toList.distinct)
   }
 }
 

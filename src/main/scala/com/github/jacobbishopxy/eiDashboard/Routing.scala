@@ -16,7 +16,7 @@ object Routing {
 
   private val paramDb = Symbol("db").as[String]
   private val paramCollection = Symbol("collection").as[String]
-  private val paramSymbol = Symbol("symbol").as[String]
+  private val paramTemplate = Symbol("template").as[String]
   private val paramPanel = Symbol("panel").as[String]
 
   val route: Route =
@@ -30,8 +30,8 @@ object Routing {
         path("grid-layout") {
           concat(
             get {
-              parameter(paramDb, paramCollection, paramSymbol, paramPanel) { (db, collection, symbol, panel) =>
-                complete(fetchItem(db, collection, symbol, panel))
+              parameter(paramDb, paramCollection, paramTemplate, paramPanel) { (db, collection, template, panel) =>
+                complete(fetchItem(db, collection, template, panel))
               }
             },
             post {
@@ -42,18 +42,17 @@ object Routing {
                   }
                 }
               }
-
             }
           )
         },
-        path("show-symbol-panel") {
-          parameter(paramDb, paramCollection, paramSymbol) { (db, collection, symbol) =>
-            complete(fetchAllPanelBySymbol(db, collection, symbol))
+        path("show-template-panel") {
+          parameter(paramDb, paramCollection, paramTemplate) { (db, collection, template) =>
+            complete(fetchAllPanelByTemplate(db, collection, template))
           }
         },
-        path("show-symbols") {
+        path("show-templates") {
           parameter(paramDb, paramCollection) { (db, collection) =>
-            complete(fetchAllSymbols(db, collection))
+            complete(fetchAllTemplates(db, collection))
           }
         }
       )
