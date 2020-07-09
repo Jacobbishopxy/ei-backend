@@ -24,3 +24,5 @@ build/
 null
 !project/build.properties
 !project/plugins.sbt
+
+src/main/resources/application.conf

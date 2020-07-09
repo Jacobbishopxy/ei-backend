@@ -1,0 +1,19 @@
+ei-backend = {
+  routes = {
+    ask-timeout = 5s
+  }
+
+  mongo-dev = {
+    dev = ""
+  }
+
+
+  research = {
+    bank = ""
+  }
+
+  mount = {
+    bank = ""
+  }
+
+}
