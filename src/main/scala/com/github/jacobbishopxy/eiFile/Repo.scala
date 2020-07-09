@@ -18,7 +18,8 @@ object Repo extends Model {
 
 
   def getFolderStructure(folderPath: String, removePathDir: Boolean = false): List[FS] = {
-    File(folderPath).list.map { f =>
+    val fp = folderPath.replaceAll(" ", "\\ ")
+    File(fp).list.map { f =>
       if (f.isDirectory) {
         val fs = f.pathAsString.replaceAll(" ", "\\ ")
         val ff = if (removePathDir) fs.replace(folderPath, "") else fs

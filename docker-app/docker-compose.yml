@@ -9,6 +9,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - ${VOLUME_LOG}:/data/logs
       - ${VOLUME_CONF}:${VOLUME_CONF}:ro
+      - ${VOLUME_EI}:${VOLUME_EI}:ro
     ports:
       - ${APP_PORT}:2020
     command:
