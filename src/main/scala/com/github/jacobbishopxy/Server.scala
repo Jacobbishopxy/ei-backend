@@ -15,6 +15,7 @@ object Server extends App {
 
   import eiDashboard.Routing.{route => eiDashboardRoute}
   import eiAdmin.Routing.{route => eiAdminRoute}
+  import eiFile.Routing.{route => eiFileRoute}
 
   implicit val system: ActorSystem = ActorSystem("Server")
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
@@ -23,7 +24,8 @@ object Server extends App {
     pathPrefix("ei") {
       concat(
         eiDashboardRoute,
-        eiAdminRoute
+        eiAdminRoute,
+        eiFileRoute
       )
     }
   }
