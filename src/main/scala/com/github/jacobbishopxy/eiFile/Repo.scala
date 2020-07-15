@@ -10,22 +10,24 @@ object Repo extends Model {
 
   import Model._
 
-  val bankFolderPath: String = ConfigFactory.load.getConfig("ei-backend").getString("mount.bank")
+  private val cfg = ConfigFactory.load.getConfig("ei-backend")
+  private val marketFolderPath = cfg.getString("mount.market")
+  private val bankFolderPath = cfg.getString("mount.bank")
 
   val folderPathMap = Map(
+    "market" -> marketFolderPath,
     "bank" -> bankFolderPath
   )
 
 
   def getFolderStructure(folderPath: String, removePathDir: Boolean = false): List[FS] = {
-    val fp = folderPath.replaceAll(" ", "\\ ")
-    File(fp).list.map { f =>
+    File(folderPath).list.map { f =>
       if (f.isDirectory) {
-        val fs = f.pathAsString.replaceAll(" ", "\\ ")
+        val fs = f.pathAsString
         val ff = if (removePathDir) fs.replace(folderPath, "") else fs
         FolderFS(ff, getFolderStructure(fs, removePathDir))
       } else {
-        val ff = (if (removePathDir) f.pathAsString.replace(folderPath, "") else f.pathAsString).replaceAll(" ", "\\ ")
+        val ff = if (removePathDir) f.pathAsString.replace(folderPath, "") else f.pathAsString
         FileFS(ff)
       }
     }.toList

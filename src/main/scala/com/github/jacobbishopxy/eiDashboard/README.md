@@ -2,45 +2,33 @@
 
 1. grid-layout-all
 
-    - GET: `http://localhost:2020/ei/utils/grid-layout-all`
+    - GET: `http://localhost:2020/ei/dashboard/grid-layouts?db=market&collection=layout`
 
 2. grid-layout
 
-    - GET: `http://localhost:2020/ei/utils/grid-layout?panel=test`
+    - GET: `http://localhost:2020/ei/dashboard/grid-layout?db=market&collection=layout&template=600036&panel=intro`
     
-    - POST: `http://localhost:2020/ei/utils/grid-layout`
+    - POST: `http://localhost:2020/ei/dashboard/grid-layout?db=market&collection=layout&template=600036&panel=intro`
     ```
     {
-        "panel": "test",
         "layouts": [
             {
+                "content": {
+                    "contentConfig": "600036.SH 招商银行",
+                    "contentData": "http://localhost:4013/bank",
+                    "contentType": "proFile",
+                    "title": "test"
+                },
                 "coordinate": {
-                    "i": "2020-03-19T13:38:19+08:00",
+                    "h": 7,
+                    "i": "2020-07-15T09:30:53+08:00",
+                    "w": 24,
                     "x": 0,
-                    "y": 0,
-                    "h": 4,
-                    "w": 5
-                },
-                "content": {
-                    "title": "t1",
-                    "contentType": "embedLink",
-                    "contentData": ""
-                }
-            },
-            {
-                "coordinate": {
-                    "i": "2020-03-20T10:37:50+08:00",
-                    "x": 6,
-                    "y": 0,
-                    "h": 4,
-                    "w": 6
-                },
-                "content": {
-                    "title": "t2",
-                    "contentType": "embedLink",
-                    "contentData": ""
+                    "y": 0
                 }
             }
-        ]
+        ],
+        "panel": "intro",
+        "template": "600036"
     }
     ```
