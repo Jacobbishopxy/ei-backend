@@ -14,14 +14,18 @@ object Routing extends SprayJsonSupport {
 
   import Repo._
 
+  private val getFolderPathByType = (fType: String) =>
+    folderPathMap.getOrElse(fType, throw new RuntimeException("type not found"))
+
+  private val getRmOption = (rm: Option[String]) =>
+    rm.fold(false) { r => if (r == "true") true else false }
+
 
   private val listFileStructure = path("listFileStructure") {
     get {
       parameter(Symbol("type"), "subFolderPath".?, "removeFolderDir".?) { (tp, sfp, rfd) =>
-
-        val fp = folderPathMap.getOrElse(tp, throw new RuntimeException("type not found"))
-
-        val rm = rfd.fold(false) { r => if (r == "true") true else false }
+        val fp = getFolderPathByType(tp)
+        val rm = getRmOption(rfd)
         val res = sfp match {
           case None => getFolderStructure(fp, rm)
           case Some(s) => getFolderStructure((File(fp) / s).pathAsString, rm)
@@ -31,10 +35,25 @@ object Routing extends SprayJsonSupport {
     }
   }
 
+  private val listProFileStructure = path("listProFileStructure") {
+    get {
+      parameter(Symbol("type"), "subFolderPath".?, "removeFolderDir".?) { (tp, sfp, rfd) =>
+        val fp = getFolderPathByType(tp)
+        val rm = getRmOption(rfd)
+        val res = sfp match {
+          case None => getProFolderStructure(fp, rm)
+          case Some(s) => getProFolderStructure((File(fp) / s).pathAsString, rm)
+        }
+        complete(res.toJson)
+      }
+    }
+  }
+
 
   val route: Route = pathPrefix("file") {
     concat(
-      listFileStructure
+      listFileStructure,
+      listProFileStructure
     )
   }
 

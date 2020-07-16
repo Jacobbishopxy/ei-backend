@@ -20,18 +20,37 @@ object Repo extends Model {
   )
 
 
+  private val pathRemoveRoot = (r: String, f: String, rm: Boolean) =>
+    if (rm) f.replace(r, "").replace("\\", "") else f
+
   def getFolderStructure(folderPath: String, removePathDir: Boolean = false): List[FS] = {
     File(folderPath).list.map { f =>
-      if (f.isDirectory) {
-        val fs = f.pathAsString
-        val ff = if (removePathDir) fs.replace(folderPath, "") else fs
+      val fs = f.pathAsString
+      val ff = pathRemoveRoot(folderPath, fs, removePathDir)
+
+      if (f.isDirectory)
         FolderFS(ff, getFolderStructure(fs, removePathDir))
-      } else {
-        val ff = if (removePathDir) f.pathAsString.replace(folderPath, "") else f.pathAsString
+      else
         FileFS(ff)
-      }
     }.toList
   }
 
+  def getProFolderStructure(folderPath: String, removePathDir: Boolean = false): ProFolderFS = {
+
+    def getListProFS(fp: String): List[ProFS] = {
+      File(fp).list.map { f =>
+        val fs = f.pathAsString
+        val ff = pathRemoveRoot(fp, fs, removePathDir)
+
+        if (f.isDirectory)
+          ProFolderFS(ff, getListProFS(fs))
+        else
+          ProFileFS(ff, f.size, f.lastModifiedTime.toString)
+      }
+    }.toList
+
+    ProFolderFS(pathRemoveRoot(folderPath, folderPath, removePathDir), getListProFS(folderPath))
+  }
 
 }
+
