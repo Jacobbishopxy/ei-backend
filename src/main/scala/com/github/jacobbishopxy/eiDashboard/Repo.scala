@@ -78,3 +78,36 @@ object Repo {
   }
 }
 
+
+object ProRepo extends ProModel {
+
+  import ProModel._
+
+  private val config: Map[String, String] = getMongoConfig("research")
+  private val mongoDBs: Map[DB.Value, MongoDatabase] = config.map {
+    case (k, v) =>
+      dbMap.getOrElse(k, throw new RuntimeException(s"database $k not found!")) ->
+        MongoClient(v).getDatabase(k)
+  }
+
+  def getCollection[T: ClassTag](db: DB.Value,
+                                 collectionName: String): MongoCollection[T] =
+    mongoDBs
+      .getOrElse(db, throw new RuntimeException(s"database $db not found!"))
+      .getCollection[T](collectionName)
+      .withCodecRegistry(CR)
+
+  def getTemplate(collectionName: String): MongoCollection[Layout] =
+    getCollection[Layout](DB.Template, collectionName)
+
+  def fetchStore(dc: DbCollection, anchor: Anchor) = ???
+
+  def fetchGridLayout(dc: DbCollection, tp: TemplatePanel) = ???
+
+  def upsertStore(dc: DbCollection, store: Store) = ???
+
+  def upsertGridLayout(dc: DbCollection, l: Layout) = ???
+
+
+}
+
