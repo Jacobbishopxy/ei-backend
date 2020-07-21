@@ -4,20 +4,74 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.server.Route
-import spray.json.DefaultJsonProtocol._
 
 /**
  * Created by Jacob Xie on 3/18/2020
  */
-object Routing {
+object Routing extends ProModel {
 
   import com.github.jacobbishopxy.eiDashboard.Model._
   import com.github.jacobbishopxy.eiDashboard.Repo._
 
-  private val paramDb = Symbol("db").as[String]
-  private val paramCollection = Symbol("collection").as[String]
-  private val paramTemplate = Symbol("template").as[String]
-  private val paramPanel = Symbol("panel").as[String]
+  import com.github.jacobbishopxy.eiDashboard.Namespace._
+  import com.github.jacobbishopxy.eiDashboard.ProModel._
+  import com.github.jacobbishopxy.eiDashboard.ProRepo._
+
+  private val paramDb = Symbol(FieldName.db).as[String]
+  private val paramCollection = Symbol(FieldName.collection).as[String]
+  private val paramTemplate = Symbol(FieldName.template).as[String]
+  private val paramPanel = Symbol(FieldName.panel).as[String]
+  private val paramIdentity = Symbol(FieldName.identity).as[String]
+  private val paramCategory = Symbol(FieldName.category).as[String]
+  private val paramSymbol = FieldName.symbol.?
+  private val paramDate = FieldName.date.?
+
+
+  private val routeStore = path(RouteName.store) {
+    concat(
+      get {
+        parameter(paramDb, paramCollection, paramIdentity, paramCategory, paramSymbol, paramDate) {
+          (db, cl, id, ct, syb, dt) =>
+            val dc = DbCollection(db, cl)
+            val ac = Anchor(identity = id, category = ct, symbol = syb, date = dt)
+            complete(fetchStore(dc, ac))
+        }
+      },
+      post {
+        parameter(paramDb, paramCollection) { (db, cl) =>
+          entity(as[Store]) { st =>
+            val dc = DbCollection(db, cl)
+            onSuccess(upsertStore(dc, st)) { res =>
+              complete((StatusCodes.Created, res.toString))
+            }
+          }
+        }
+      }
+    )
+  }
+
+  private val routeLayout = path(RouteName.layout) {
+    concat(
+      get {
+        parameter(paramDb, paramCollection, paramTemplate, paramPanel) {
+          (db, cl, tpl, pn) =>
+            val dc = DbCollection(db, cl)
+            val tp = TemplatePanel(tpl, pn)
+            complete(fetchLayout(dc, tp))
+        }
+      },
+      post {
+        parameter(paramDb, paramCollection) { (db, cl) =>
+          entity(as[Layout]) { lo =>
+            val dc = DbCollection(db, cl)
+            onSuccess(upsertLayout(dc, lo)) { res =>
+              complete((StatusCodes.Created, res.toString))
+            }
+          }
+        }
+      }
+    )
+  }
 
   val route: Route =
     pathPrefix("dashboard") {
@@ -30,8 +84,9 @@ object Routing {
         path("grid-layout") {
           concat(
             get {
-              parameter(paramDb, paramCollection, paramTemplate, paramPanel) { (db, collection, template, panel) =>
-                complete(fetchItem(db, collection, template, panel))
+              parameter(paramDb, paramCollection, paramTemplate, paramPanel) {
+                (db, collection, template, panel) =>
+                  complete(fetchItem(db, collection, template, panel))
               }
             },
             post {
@@ -54,7 +109,11 @@ object Routing {
           parameter(paramDb, paramCollection) { (db, collection) =>
             complete(fetchAllTemplates(db, collection))
           }
-        }
+        },
+
+        routeStore,
+        routeLayout,
+
       )
     }
 }

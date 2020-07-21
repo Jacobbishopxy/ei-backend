@@ -1,6 +1,5 @@
 package com.github.jacobbishopxy.eiDashboard
 
-import com.github.jacobbishopxy.eiDashboard.ProModel.{Category, DB}
 import org.mongodb.scala.bson.codecs.Macros._
 import org.mongodb.scala.MongoClient.DEFAULT_CODEC_REGISTRY
 import org.bson.codecs.configuration.CodecRegistries.{fromProviders, fromRegistries}
@@ -52,48 +51,67 @@ object ProModel {
       |___element
    */
 
-  object DB extends Enumeration {
-    type DB = Value
-    val Template, Market, Bank = Value
-  }
+  import Namespace._
 
-  val dbMap: Map[String, DB.Value] = Map(
-    "template" -> DB.Template,
-    "market" -> DB.Market,
-    "bank" -> DB.Bank
-  )
-
-  object Category extends Enumeration {
-    type Category = Value
-    val EmbedLink, Text, TargetPrice, Image,
-    FileList, FileManager,
-    EditableTable, Table,
-    Lines, Histogram, Pie, Scatter, Heatmap, Box, Tree, TreeMap
-    = Value
-  }
-
-  val categoryMap: Map[String, Category.Value] = Map(
-    "embedLink" -> Category.EmbedLink,
-    "text" -> Category.Text,
-    "targetPrice" -> Category.TargetPrice,
-    "image" -> Category.Image,
-    "fileList" -> Category.FileList,
-    "fileManager" -> Category.FileManager,
-    "editableTable" -> Category.EditableTable,
-    "table" -> Category.Table,
-    "lines" -> Category.Lines,
-    "histogram" -> Category.Histogram,
-    "pie" -> Category.Pie,
-    "scatter" -> Category.Scatter,
-    "heatmap" -> Category.Heatmap,
-    "box" -> Category.Box,
-    "tree" -> Category.Tree,
-    "treeMap" -> Category.TreeMap,
-  )
+  //  sealed trait DB
+  //  object DB {
+  //    case object Template extends DB
+  //    case object Market extends DB
+  //    case object Bank extends DB
+  //  }
+  //
+  //  val dbMap: Map[String, DB] = Map(
+  //    DbName.template -> DB.Template,
+  //    DbName.market -> DB.Market,
+  //    DbName.bank -> DB.Bank,
+  //  )
+  //  val dbReversedMap: Map[DB, String] =
+  //    dbMap.map(_.swap)
+  //
+  //  sealed trait Category
+  //  object Category {
+  //    case object EmbedLink extends Category
+  //    case object Text extends Category
+  //    case object TargetPrice extends Category
+  //    case object Image extends Category
+  //    case object FileList extends Category
+  //    case object FileManager extends Category
+  //    case object EditableTable extends Category
+  //    case object Table extends Category
+  //    case object Lines extends Category
+  //    case object Histogram extends Category
+  //    case object Pie extends Category
+  //    case object Scatter extends Category
+  //    case object Heatmap extends Category
+  //    case object Box extends Category
+  //    case object Tree extends Category
+  //    case object TreeMap extends Category
+  //  }
+  //
+  //  val categoryMap: Map[String, Category] = Map(
+  //    CategoryName.embedLink -> Category.EmbedLink,
+  //    CategoryName.text -> Category.Text,
+  //    CategoryName.targetPrice -> Category.TargetPrice,
+  //    CategoryName.image -> Category.Image,
+  //    CategoryName.fileList -> Category.FileList,
+  //    CategoryName.fileManager -> Category.FileManager,
+  //    CategoryName.editableTable -> Category.EditableTable,
+  //    CategoryName.table -> Category.Table,
+  //    CategoryName.lines -> Category.Lines,
+  //    CategoryName.histogram -> Category.Histogram,
+  //    CategoryName.pie -> Category.Pie,
+  //    CategoryName.scatter -> Category.Scatter,
+  //    CategoryName.heatmap -> Category.Heatmap,
+  //    CategoryName.box -> Category.Box,
+  //    CategoryName.tree -> Category.Tree,
+  //    CategoryName.treeMap -> Category.TreeMap,
+  //  )
+  //  val categoryReversedMap: Map[Category, String] =
+  //    categoryMap.map(_.swap)
 
 
   case class Anchor(identity: String,
-                    category: Category.Value,
+                    category: String,
                     symbol: Option[String],
                     date: Option[String]) // maybe more key?
 
@@ -103,10 +121,10 @@ object ProModel {
   case class Coordinate(x: Int, y: Int, h: Int, w: Int)
   case class Element(anchor: Anchor, coordinate: Coordinate)
 
-  case class Layout(template: String, panel: String, layouts: Seq[Element])
-
   case class TemplatePanel(template: String, panel: String)
-  case class DbCollection(db: DB.Value, collectionName: String)
+  case class Layout(templatePanel: TemplatePanel, layouts: Seq[Element])
+
+  case class DbCollection(db: String, collectionName: String)
 
 
   val CR: CodecRegistry = fromRegistries(fromProviders(
@@ -115,26 +133,23 @@ object ProModel {
     classOf[Store],
     classOf[Coordinate],
     classOf[Element],
-    classOf[Layout],
     classOf[TemplatePanel],
-  ))
+    classOf[Layout],
+    classOf[DbCollection],
+  ), DEFAULT_CODEC_REGISTRY)
 
 }
 
 trait ProModel extends DefaultJsonProtocol {
 
   import ProModel._
-  import com.github.jacobbishopxy.Utilities.EnumJsonConverter
 
-
-  implicit val dbConverter: EnumJsonConverter[ProModel.DB.type] = new EnumJsonConverter(DB)
-  implicit val categoryConverter: EnumJsonConverter[ProModel.Category.type] = new EnumJsonConverter(Category)
   implicit val anchorFormat: RootJsonFormat[Anchor] = jsonFormat4(Anchor)
   implicit val contentFormat: RootJsonFormat[Content] = jsonFormat2(Content)
   implicit val storeFormat: RootJsonFormat[Store] = jsonFormat2(Store)
   implicit val coordinateFormat: RootJsonFormat[Coordinate] = jsonFormat4(Coordinate)
   implicit val elementFormat: RootJsonFormat[Element] = jsonFormat2(Element)
-  implicit val gridLayoutFormat: RootJsonFormat[Layout] = jsonFormat3(Layout)
+  implicit val gridLayoutFormat: RootJsonFormat[Layout] = jsonFormat2(Layout)
   implicit val gridTemplatePanelFormat: RootJsonFormat[TemplatePanel] = jsonFormat2(TemplatePanel)
   implicit val gridDbCollectionFormat: RootJsonFormat[DbCollection] = jsonFormat2(DbCollection)
 }

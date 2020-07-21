@@ -2,6 +2,7 @@ package com.github.jacobbishopxy.eiDashboard
 
 import com.github.jacobbishopxy.Utilities._
 import org.mongodb.scala._
+import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model.Filters._
 import org.mongodb.scala.model.{Projections, ReplaceOptions}
 import org.mongodb.scala.result.UpdateResult
@@ -82,31 +83,108 @@ object Repo {
 object ProRepo extends ProModel {
 
   import ProModel._
+  import Namespace._
 
-  private val config: Map[String, String] = getMongoConfig("research")
-  private val mongoDBs: Map[DB.Value, MongoDatabase] = config.map {
-    case (k, v) =>
-      dbMap.getOrElse(k, throw new RuntimeException(s"database $k not found!")) ->
-        MongoClient(v).getDatabase(k)
+  private val config: Map[String, String] = getMongoConfig(ConfigName.config)
+  private val mongoDBs: Map[String, MongoDatabase] = config.map {
+    case (k, v) => k -> MongoClient(v).getDatabase(k)
   }
 
-  def getCollection[T: ClassTag](db: DB.Value,
+  def getCollection[T: ClassTag](db: String,
                                  collectionName: String): MongoCollection[T] =
     mongoDBs
       .getOrElse(db, throw new RuntimeException(s"database $db not found!"))
       .getCollection[T](collectionName)
       .withCodecRegistry(CR)
 
-  def getTemplate(collectionName: String): MongoCollection[Layout] =
-    getCollection[Layout](DB.Template, collectionName)
 
-  def fetchStore(dc: DbCollection, anchor: Anchor) = ???
+  private val identityEqual = (i: String) =>
+    Some(equal(s"anchor.${FieldName.identity}", i))
+  private val categoryEqual = (c: String) =>
+    Some(equal(s"anchor.${FieldName.category}", c))
+  private val symbolEqual = (s: Option[String]) =>
+    s.map(equal(s"anchor.${FieldName.symbol}", _))
+  private val dateEqual = (d: Option[String]) =>
+    d.map(equal(s"anchor.${FieldName.date}", _))
 
-  def fetchGridLayout(dc: DbCollection, tp: TemplatePanel) = ???
+  private def anchorCond(a: Anchor): Bson = {
+    val l = List(
+      identityEqual(a.identity),
+      categoryEqual(a.category),
+      symbolEqual(a.symbol),
+      dateEqual(a.date)
+    )
 
-  def upsertStore(dc: DbCollection, store: Store) = ???
+    val cds = l.foldLeft(List.empty[Bson]) {
+      case (s, None) => s
+      case (s, Some(v)) => s :+ v
+    }
 
-  def upsertGridLayout(dc: DbCollection, l: Layout) = ???
+    and(cds: _*)
+  }
+
+  private val templateEqual = (t: String) =>
+    equal(FieldName.template, t)
+  private val panelEqual = (p: String) =>
+    equal(FieldName.panel, p)
+
+  private def templatePanelCond(tp: TemplatePanel) =
+    and(templateEqual(tp.template), panelEqual(tp.panel))
+
+
+  /**
+   *
+   * @param dc     : [[DbCollection]]
+   * @param anchor : [[Anchor]]
+   * @return
+   */
+  def fetchStore(dc: DbCollection, anchor: Anchor): Future[Store] = {
+    val cond = anchorCond(anchor)
+    getCollection[Store](dc.db, dc.collectionName)
+      .find(cond)
+      .first()
+      .toFuture()
+  }
+
+  /**
+   *
+   * @param dc : [[DbCollection]]
+   * @param tp : [[TemplatePanel]]
+   * @return
+   */
+  def fetchLayout(dc: DbCollection, tp: TemplatePanel): Future[Layout] = {
+    val cond = templatePanelCond(tp)
+    getCollection[Layout](dc.db, dc.collectionName)
+      .find(cond)
+      .first()
+      .toFuture()
+  }
+
+  /**
+   *
+   * @param dc    : [[DbCollection]]
+   * @param store : [[Store]]
+   * @return
+   */
+  def upsertStore(dc: DbCollection, store: Store): Future[UpdateResult] = {
+    val cond = anchorCond(store.anchor)
+    getCollection[Store](dc.db, dc.collectionName)
+      .replaceOne(cond, store, ReplaceOptions().upsert(true))
+      .toFuture()
+  }
+
+  /**
+   *
+   * @param dc : [[DbCollection]]
+   * @param l  : [[Layout]]
+   * @return
+   */
+  def upsertLayout(dc: DbCollection, l: Layout): Future[UpdateResult] = {
+    val cond = templatePanelCond(l.templatePanel)
+    getCollection[Layout](dc.db, dc.collectionName)
+      .replaceOne(cond, l, ReplaceOptions().upsert(true))
+      .toFuture()
+  }
 
 
 }
