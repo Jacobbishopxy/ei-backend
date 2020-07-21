@@ -1,11 +1,19 @@
 import org.bson.{BsonInvalidOperationException, BsonReader, BsonWriter}
 import org.bson.codecs.{Codec, DecoderContext, EncoderContext}
 import org.bson.codecs.configuration._
+import org.mongodb.scala.bson.codecs.Macros._
+import org.mongodb.scala.MongoClient.DEFAULT_CODEC_REGISTRY
+import org.bson.codecs.configuration.CodecRegistries.{fromProviders, fromRegistries, fromCodecs}
+import org.bson.codecs.configuration.CodecRegistry
+
+import scala.concurrent.Await
+import scala.concurrent.duration._
+
 
 /**
  * Created by Jacob Xie on 7/21/2020
  */
-object DevMongoCR {
+object DevMongoCR extends App with DevMongoRepo {
 
   sealed trait CaseObjectEnum
   object CaseObjectEnum {
@@ -60,4 +68,16 @@ object DevMongoCR {
   }
 
   case class ContainsMyEnum(myEnum: CaseObjectEnum)
+
+  val cr = fromRegistries(
+    fromCodecs(CaseObjectEnumCodecProvider.CaseObjectEnumCodec),
+    fromProviders(
+    classOf[ContainsMyEnum],
+  ), DEFAULT_CODEC_REGISTRY)
+
+  val db = database.withCodecRegistry(cr)
+  val collection = db.getCollection("cr-test")
+
+  val res1 = Await.result(collection.find().toFuture(), 10.seconds)
+  println(res1)
 }
