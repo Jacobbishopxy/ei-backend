@@ -1,10 +1,10 @@
 import org.bson.{BsonInvalidOperationException, BsonReader, BsonWriter}
 import org.bson.codecs.{Codec, DecoderContext, EncoderContext}
 import org.bson.codecs.configuration._
+import org.bson.codecs.configuration.CodecRegistries.{fromProviders, fromRegistries}
 import org.mongodb.scala.bson.codecs.Macros._
 import org.mongodb.scala.MongoClient.DEFAULT_CODEC_REGISTRY
-import org.bson.codecs.configuration.CodecRegistries.{fromProviders, fromRegistries, fromCodecs}
-import org.bson.codecs.configuration.CodecRegistry
+import org.mongodb.scala.MongoCollection
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -69,15 +69,18 @@ object DevMongoCR extends App with DevMongoRepo {
 
   case class ContainsMyEnum(myEnum: CaseObjectEnum)
 
-  val cr = fromRegistries(
-    fromCodecs(CaseObjectEnumCodecProvider.CaseObjectEnumCodec),
-    fromProviders(
+  val cr = fromRegistries(fromProviders(
+    CaseObjectEnumCodecProvider,
     classOf[ContainsMyEnum],
   ), DEFAULT_CODEC_REGISTRY)
 
   val db = database.withCodecRegistry(cr)
-  val collection = db.getCollection("cr-test")
+  val collection: MongoCollection[ContainsMyEnum] = db.getCollection("cr-test")
 
   val res1 = Await.result(collection.find().toFuture(), 10.seconds)
   println(res1)
+
+  val md = ContainsMyEnum(CaseObjectEnum.Alpha)
+  val res2 = Await.result(collection.insertOne(md).toFuture(), 10.seconds)
+  println(res2)
 }
