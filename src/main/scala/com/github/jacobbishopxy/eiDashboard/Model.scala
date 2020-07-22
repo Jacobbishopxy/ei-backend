@@ -4,13 +4,12 @@ import org.mongodb.scala.bson.codecs.Macros._
 import org.mongodb.scala.MongoClient.DEFAULT_CODEC_REGISTRY
 import org.bson.codecs.configuration.CodecRegistries.{fromProviders, fromRegistries}
 import org.bson.codecs.configuration.CodecRegistry
-import spray.json.DefaultJsonProtocol._
 import spray.json._
 
 /**
  * Created by Jacob Xie on 7/6/2020
  */
-object Model {
+object Model extends DefaultJsonProtocol {
 
   case class Coordinate(i: String, x: Int, y: Int, h: Int, w: Int)
 
@@ -43,7 +42,7 @@ object Model {
 
 }
 
-object ProModel {
+object ProModel extends DefaultJsonProtocol {
 
   /*
   anchor
@@ -53,65 +52,76 @@ object ProModel {
 
   import Namespace._
 
-  //  sealed trait DB
-  //  object DB {
-  //    case object Template extends DB
-  //    case object Market extends DB
-  //    case object Bank extends DB
-  //  }
-  //
-  //  val dbMap: Map[String, DB] = Map(
-  //    DbName.template -> DB.Template,
-  //    DbName.market -> DB.Market,
-  //    DbName.bank -> DB.Bank,
-  //  )
-  //  val dbReversedMap: Map[DB, String] =
-  //    dbMap.map(_.swap)
-  //
-  //  sealed trait Category
-  //  object Category {
-  //    case object EmbedLink extends Category
-  //    case object Text extends Category
-  //    case object TargetPrice extends Category
-  //    case object Image extends Category
-  //    case object FileList extends Category
-  //    case object FileManager extends Category
-  //    case object EditableTable extends Category
-  //    case object Table extends Category
-  //    case object Lines extends Category
-  //    case object Histogram extends Category
-  //    case object Pie extends Category
-  //    case object Scatter extends Category
-  //    case object Heatmap extends Category
-  //    case object Box extends Category
-  //    case object Tree extends Category
-  //    case object TreeMap extends Category
-  //  }
-  //
-  //  val categoryMap: Map[String, Category] = Map(
-  //    CategoryName.embedLink -> Category.EmbedLink,
-  //    CategoryName.text -> Category.Text,
-  //    CategoryName.targetPrice -> Category.TargetPrice,
-  //    CategoryName.image -> Category.Image,
-  //    CategoryName.fileList -> Category.FileList,
-  //    CategoryName.fileManager -> Category.FileManager,
-  //    CategoryName.editableTable -> Category.EditableTable,
-  //    CategoryName.table -> Category.Table,
-  //    CategoryName.lines -> Category.Lines,
-  //    CategoryName.histogram -> Category.Histogram,
-  //    CategoryName.pie -> Category.Pie,
-  //    CategoryName.scatter -> Category.Scatter,
-  //    CategoryName.heatmap -> Category.Heatmap,
-  //    CategoryName.box -> Category.Box,
-  //    CategoryName.tree -> Category.Tree,
-  //    CategoryName.treeMap -> Category.TreeMap,
-  //  )
-  //  val categoryReversedMap: Map[Category, String] =
-  //    categoryMap.map(_.swap)
+  sealed abstract class DB(n: String) {
+    def name: String = n
+  }
+  object DB {
+    case object Template extends DB(DbName.template)
+    case object Market extends DB(DbName.market)
+    case object Bank extends DB(DbName.bank)
+  }
+
+
+  sealed abstract class Category(n: String) {
+    def name: String = n
+  }
+  object Category {
+    case object EmbedLink extends Category(CategoryName.embedLink)
+    case object Text extends Category(CategoryName.text)
+    case object TargetPrice extends Category(CategoryName.targetPrice)
+    case object Image extends Category(CategoryName.image)
+    case object FileList extends Category(CategoryName.fileList)
+    case object FileManager extends Category(CategoryName.fileManager)
+    case object EditableTable extends Category(CategoryName.editableTable)
+    case object Table extends Category(CategoryName.table)
+    case object Lines extends Category(CategoryName.lines)
+    case object Histogram extends Category(CategoryName.histogram)
+    case object Pie extends Category(CategoryName.pie)
+    case object Scatter extends Category(CategoryName.scatter)
+    case object Heatmap extends Category(CategoryName.heatmap)
+    case object Box extends Category(CategoryName.box)
+    case object Tree extends Category(CategoryName.tree)
+    case object TreeMap extends Category(CategoryName.treeMap)
+  }
+
+  object DbFinder {
+    implicit class Finder(n: String) {
+      def db: DB = n match {
+        case DbName.template => DB.Template
+        case DbName.market => DB.Market
+        case DbName.bank => DB.Bank
+        case _ => throw new RuntimeException(s"database: $n not found!")
+      }
+    }
+  }
+
+  object CategoryFinder {
+    implicit class Finder(n: String) {
+      def category: Category = n match {
+        case CategoryName.embedLink => Category.EmbedLink
+        case CategoryName.text => Category.Text
+        case CategoryName.targetPrice => Category.TargetPrice
+        case CategoryName.image => Category.Image
+        case CategoryName.fileList => Category.FileList
+        case CategoryName.fileManager => Category.FileManager
+        case CategoryName.editableTable => Category.EditableTable
+        case CategoryName.table => Category.Table
+        case CategoryName.lines => Category.Lines
+        case CategoryName.histogram => Category.Histogram
+        case CategoryName.pie => Category.Pie
+        case CategoryName.scatter => Category.Scatter
+        case CategoryName.heatmap => Category.Heatmap
+        case CategoryName.box => Category.Box
+        case CategoryName.tree => Category.Tree
+        case CategoryName.treeMap => Category.TreeMap
+        case _ => throw new RuntimeException(s"category: $n not found!")
+      }
+    }
+  }
 
 
   case class Anchor(identity: String,
-                    category: String,
+                    category: Category,
                     symbol: Option[String],
                     date: Option[String]) // maybe more key?
 
@@ -124,10 +134,53 @@ object ProModel {
   case class TemplatePanel(template: String, panel: String)
   case class Layout(templatePanel: TemplatePanel, layouts: Seq[Element])
 
-  case class DbCollection(db: String, collectionName: String)
+  case class DbCollection(db: DB, collectionName: String)
 
+}
+
+trait ProModel extends DefaultJsonProtocol {
+
+  import ProModel._
+  import Namespace.EnumIdentifierName
+  import com.github.jacobbishopxy.MongoEnumHelper._
+
+  // codecRegistry for mongodb driver
+
+  class CategoryEnumClz extends EnumClz[Category] {
+
+    import CategoryFinder._
+
+    override def clzToString(clz: Category): String = clz.name
+
+    override def stringToClz(n: String): Category = n.category
+  }
+
+  object CategoryCodecProvider extends MongoEnumCodecProvider[Category] {
+    override val enumCodec: MongoEnumCodec[Category] =
+      MongoEnumCodec[Category](new CategoryEnumClz, EnumIdentifierName.category)
+
+    override def isEnum[T](clazz: Class[T]): Boolean = {
+      clazz.isInstance(Category.EmbedLink) ||
+        clazz.isInstance(Category.Text) ||
+        clazz.isInstance(Category.TargetPrice) ||
+        clazz.isInstance(Category.Image) ||
+        clazz.isInstance(Category.FileList) ||
+        clazz.isInstance(Category.FileManager) ||
+        clazz.isInstance(Category.EditableTable) ||
+        clazz.isInstance(Category.Table) ||
+        clazz.isInstance(Category.Lines) ||
+        clazz.isInstance(Category.Histogram) ||
+        clazz.isInstance(Category.Pie) ||
+        clazz.isInstance(Category.Scatter) ||
+        clazz.isInstance(Category.Heatmap) ||
+        clazz.isInstance(Category.Box) ||
+        clazz.isInstance(Category.Tree) ||
+        clazz.isInstance(Category.TreeMap)
+    }
+  }
 
   val CR: CodecRegistry = fromRegistries(fromProviders(
+    CategoryCodecProvider,
     classOf[Anchor],
     classOf[Content],
     classOf[Store],
@@ -135,22 +188,44 @@ object ProModel {
     classOf[Element],
     classOf[TemplatePanel],
     classOf[Layout],
-    classOf[DbCollection],
   ), DEFAULT_CODEC_REGISTRY)
 
-}
 
-trait ProModel extends DefaultJsonProtocol {
+  // json support for akka http
 
-  import ProModel._
+  implicit object JsonSupportDb extends JsonFormat[DB] {
+
+    import DbFinder._
+
+    override def write(obj: DB): JsValue = JsString(obj.name)
+
+    override def read(json: JsValue): DB = json match {
+      case JsString(v) => v.db
+      case _ => throw new RuntimeException(s"AnyJsonFormat write failed: ${json.toString}")
+    }
+  }
+
+  implicit object JsonSupportCategory extends JsonFormat[Category] {
+
+    import CategoryFinder._
+
+    override def write(obj: Category): JsValue = JsString(obj.name)
+
+    override def read(json: JsValue): Category = json match {
+      case JsString(v) =>
+        println(s"v: $v")
+        v.category
+      case _ => throw new RuntimeException(s"AnyJsonFormat write failed: ${json.toString}")
+    }
+  }
 
   implicit val anchorFormat: RootJsonFormat[Anchor] = jsonFormat4(Anchor)
   implicit val contentFormat: RootJsonFormat[Content] = jsonFormat2(Content)
   implicit val storeFormat: RootJsonFormat[Store] = jsonFormat2(Store)
   implicit val coordinateFormat: RootJsonFormat[Coordinate] = jsonFormat4(Coordinate)
   implicit val elementFormat: RootJsonFormat[Element] = jsonFormat2(Element)
-  implicit val gridLayoutFormat: RootJsonFormat[Layout] = jsonFormat2(Layout)
   implicit val gridTemplatePanelFormat: RootJsonFormat[TemplatePanel] = jsonFormat2(TemplatePanel)
-  implicit val gridDbCollectionFormat: RootJsonFormat[DbCollection] = jsonFormat2(DbCollection)
+  implicit val gridLayoutFormat: RootJsonFormat[Layout] = jsonFormat2(Layout)
+
 }
 

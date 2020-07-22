@@ -1,6 +1,6 @@
 name := "ei-backend"
 
-version := "0.0.6"
+version := "0.0.7"
 scalacOptions ++= Seq("-deprecation", "-feature")
 
 

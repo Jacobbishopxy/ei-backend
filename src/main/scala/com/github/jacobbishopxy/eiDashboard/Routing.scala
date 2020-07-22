@@ -2,13 +2,13 @@ package com.github.jacobbishopxy.eiDashboard
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.server.Route
 
 /**
  * Created by Jacob Xie on 3/18/2020
  */
-object Routing extends ProModel {
+object Routing extends ProModel with SprayJsonSupport {
 
   import com.github.jacobbishopxy.eiDashboard.Model._
   import com.github.jacobbishopxy.eiDashboard.Repo._
@@ -31,16 +31,21 @@ object Routing extends ProModel {
     concat(
       get {
         parameter(paramDb, paramCollection, paramIdentity, paramCategory, paramSymbol, paramDate) {
-          (db, cl, id, ct, syb, dt) =>
-            val dc = DbCollection(db, cl)
-            val ac = Anchor(identity = id, category = ct, symbol = syb, date = dt)
+          (d, cl, id, ct, syb, dt) =>
+            val dc = DbCollection(DbFinder.Finder(d).db, cl)
+            val ac = Anchor(
+              identity = id,
+              category = CategoryFinder.Finder(ct).category,
+              symbol = syb,
+              date = dt
+            )
             complete(fetchStore(dc, ac))
         }
       },
       post {
-        parameter(paramDb, paramCollection) { (db, cl) =>
+        parameter(paramDb, paramCollection) { (d, cl) =>
           entity(as[Store]) { st =>
-            val dc = DbCollection(db, cl)
+            val dc = DbCollection(DbFinder.Finder(d).db, cl)
             onSuccess(upsertStore(dc, st)) { res =>
               complete((StatusCodes.Created, res.toString))
             }
@@ -54,16 +59,16 @@ object Routing extends ProModel {
     concat(
       get {
         parameter(paramDb, paramCollection, paramTemplate, paramPanel) {
-          (db, cl, tpl, pn) =>
-            val dc = DbCollection(db, cl)
+          (d, cl, tpl, pn) =>
+            val dc = DbCollection(DbFinder.Finder(d).db, cl)
             val tp = TemplatePanel(tpl, pn)
             complete(fetchLayout(dc, tp))
         }
       },
       post {
-        parameter(paramDb, paramCollection) { (db, cl) =>
+        parameter(paramDb, paramCollection) { (d, cl) =>
           entity(as[Layout]) { lo =>
-            val dc = DbCollection(db, cl)
+            val dc = DbCollection(DbFinder.Finder(d).db, cl)
             onSuccess(upsertLayout(dc, lo)) { res =>
               complete((StatusCodes.Created, res.toString))
             }

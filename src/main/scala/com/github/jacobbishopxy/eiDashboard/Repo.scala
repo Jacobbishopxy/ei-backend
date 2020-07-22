@@ -85,13 +85,14 @@ object ProRepo extends ProModel {
   import ProModel._
   import Namespace._
 
+  import DbFinder._
+
   private val config: Map[String, String] = getMongoConfig(ConfigName.config)
-  private val mongoDBs: Map[String, MongoDatabase] = config.map {
-    case (k, v) => k -> MongoClient(v).getDatabase(k)
+  private val mongoDBs: Map[DB, MongoDatabase] = config.map {
+    case (k, v) => k.db -> MongoClient(v).getDatabase(k)
   }
 
-  def getCollection[T: ClassTag](db: String,
-                                 collectionName: String): MongoCollection[T] =
+  def getCollection[T: ClassTag](db: DB, collectionName: String): MongoCollection[T] =
     mongoDBs
       .getOrElse(db, throw new RuntimeException(s"database $db not found!"))
       .getCollection[T](collectionName)
@@ -99,13 +100,13 @@ object ProRepo extends ProModel {
 
 
   private val identityEqual = (i: String) =>
-    Some(equal(s"anchor.${FieldName.identity}", i))
-  private val categoryEqual = (c: String) =>
-    Some(equal(s"anchor.${FieldName.category}", c))
+    Some(equal(s"${FieldName.anchor}.${FieldName.identity}", i))
+  private val categoryEqual = (c: Category) =>
+    Some(equal(s"${FieldName.anchor}.${FieldName.category}.${EnumIdentifierName.category}", c.name))
   private val symbolEqual = (s: Option[String]) =>
-    s.map(equal(s"anchor.${FieldName.symbol}", _))
+    s.map(equal(s"${FieldName.anchor}.${FieldName.symbol}", _))
   private val dateEqual = (d: Option[String]) =>
-    d.map(equal(s"anchor.${FieldName.date}", _))
+    d.map(equal(s"${FieldName.anchor}.${FieldName.date}", _))
 
   private def anchorCond(a: Anchor): Bson = {
     val l = List(
@@ -124,9 +125,9 @@ object ProRepo extends ProModel {
   }
 
   private val templateEqual = (t: String) =>
-    equal(FieldName.template, t)
+    equal(s"${FieldName.templatePanel}.${FieldName.template}", t)
   private val panelEqual = (p: String) =>
-    equal(FieldName.panel, p)
+    equal(s"${FieldName.templatePanel}.${FieldName.panel}", p)
 
   private def templatePanelCond(tp: TemplatePanel) =
     and(templateEqual(tp.template), panelEqual(tp.panel))
@@ -175,14 +176,14 @@ object ProRepo extends ProModel {
 
   /**
    *
-   * @param dc : [[DbCollection]]
-   * @param l  : [[Layout]]
+   * @param dc     : [[DbCollection]]
+   * @param layout : [[Layout]]
    * @return
    */
-  def upsertLayout(dc: DbCollection, l: Layout): Future[UpdateResult] = {
-    val cond = templatePanelCond(l.templatePanel)
+  def upsertLayout(dc: DbCollection, layout: Layout) = {
+    val cond = templatePanelCond(layout.templatePanel)
     getCollection[Layout](dc.db, dc.collectionName)
-      .replaceOne(cond, l, ReplaceOptions().upsert(true))
+      .replaceOne(cond, layout, ReplaceOptions().upsert(true))
       .toFuture()
   }
 

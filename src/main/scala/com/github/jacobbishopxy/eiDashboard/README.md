@@ -32,3 +32,54 @@
         "template": "600036"
     }
     ```
+
+3. store
+
+    - GET: `http://localhost:2020/ei/dashboard/store?db=bank&collection=layout-dev&identity=%231&category=text`
+    
+    - POST: `http://localhost:2020/ei/dashboard/store?db=bank&collection=layout-dev`
+    ```
+    {
+        "anchor": {
+            "identity": "#1",
+            "category": "text",
+            "symbol": "000001",
+            "date": "20200721"
+        },
+        "content": {
+            "data": "dev data321",
+            "config": "dev config"
+        }
+    }
+    ```
+
+4. layout
+
+    - GET: `http://localhost:2020/ei/dashboard/layout?db=bank&collection=layout-dev2&template=dev&panel=p`
+    
+    - POST: `http://localhost:2020/ei/dashboard/layout?db=bank&collection=layout-dev2`
+    ```
+    {
+        "templatePanel": {
+            "template": "dev",
+            "panel": "p"
+        },
+        "layouts": [
+            {
+                "anchor": {
+                    "identity": "num1",
+                    "category": "text",
+                    "symbol": "000001",
+                    "date": "20200101"
+                },
+                "coordinate": {
+                    "x": 1,
+                    "y": 2,
+                    "h": 3,
+                    "w": 4
+                }
+            }
+        ]
+    }
+    ```
+

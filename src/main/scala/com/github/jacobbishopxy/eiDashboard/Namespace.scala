@@ -42,11 +42,18 @@ object Namespace {
     val collection = "collection"
     val template = "template"
     val panel = "panel"
+    val templatePanel = "templatePanel"
+    val anchor = "anchor"
 
     val identity = "identity"
     val category = "category"
     val symbol = "symbol"
     val date = "date"
+  }
+
+
+  object EnumIdentifierName {
+    val category = "_enum_category"
   }
 
 
