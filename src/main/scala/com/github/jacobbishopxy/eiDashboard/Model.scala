@@ -57,6 +57,7 @@ object ProModel extends DefaultJsonProtocol {
   }
   object DB {
     case object Template extends DB(DbName.template)
+    case object Industry extends DB(DbName.industry)
     case object Market extends DB(DbName.market)
     case object Bank extends DB(DbName.bank)
   }
@@ -88,6 +89,7 @@ object ProModel extends DefaultJsonProtocol {
     implicit class Finder(n: String) {
       def db: DB = n match {
         case DbName.template => DB.Template
+        case DbName.industry => DB.Industry
         case DbName.market => DB.Market
         case DbName.bank => DB.Bank
         case _ => throw new RuntimeException(s"database: $n not found!")

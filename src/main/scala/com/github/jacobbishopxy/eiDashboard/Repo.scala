@@ -149,6 +149,15 @@ object ProRepo extends ProModel {
 
   /**
    *
+   * @param collection : String
+   * @param anchor     : [[Anchor]]
+   * @return
+   */
+  def fetchIndustryStore(collection: String, anchor: Anchor): Future[Store] =
+    fetchStore(DbCollection(DB.Industry, collection), anchor)
+
+  /**
+   *
    * @param dc : [[DbCollection]]
    * @param tp : [[TemplatePanel]]
    * @return
@@ -160,6 +169,15 @@ object ProRepo extends ProModel {
       .first()
       .toFuture()
   }
+
+  /**
+   *
+   * @param collection : String
+   * @param tp         : [[TemplatePanel]]
+   * @return
+   */
+  def fetchTemplateLayout(collection: String, tp: TemplatePanel): Future[Layout] =
+    fetchLayout(DbCollection(DB.Template, collection), tp)
 
   /**
    *
@@ -176,16 +194,34 @@ object ProRepo extends ProModel {
 
   /**
    *
+   * @param collection : String
+   * @param store      : [[Store]]
+   * @return
+   */
+  def upsertIndustryStore(collection: String, store: Store): Future[UpdateResult] =
+    upsertStore(DbCollection(DB.Industry, collection), store)
+
+  /**
+   *
    * @param dc     : [[DbCollection]]
    * @param layout : [[Layout]]
    * @return
    */
-  def upsertLayout(dc: DbCollection, layout: Layout) = {
+  def upsertLayout(dc: DbCollection, layout: Layout): Future[UpdateResult] = {
     val cond = templatePanelCond(layout.templatePanel)
     getCollection[Layout](dc.db, dc.collectionName)
       .replaceOne(cond, layout, ReplaceOptions().upsert(true))
       .toFuture()
   }
+
+  /**
+   *
+   * @param collection : String
+   * @param layout     : [[Layout]]
+   * @return
+   */
+  def upsertTemplateLayout(collection: String, layout: Layout): Future[UpdateResult] =
+    upsertLayout(DbCollection(DB.Template, collection), layout)
 
 
 }

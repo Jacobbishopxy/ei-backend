@@ -11,6 +11,7 @@ object Namespace {
 
   object DbName {
     val template = "template"
+    val industry = "industry"
     val market = "market"
     val bank = "bank"
   }
@@ -61,5 +62,8 @@ object Namespace {
     val layouts = "layouts"
     val layout = "layout"
     val store = "store"
+
+    val templateLayout = "template-layout"
+    val industryStore = "industry-store"
   }
 }

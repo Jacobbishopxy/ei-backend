@@ -27,26 +27,24 @@ object Routing extends ProModel with SprayJsonSupport {
   private val paramDate = FieldName.date.?
 
 
-  private val routeStore = path(RouteName.store) {
+  private val routeStore = path(RouteName.industryStore) {
     concat(
       get {
-        parameter(paramDb, paramCollection, paramIdentity, paramCategory, paramSymbol, paramDate) {
-          (d, cl, id, ct, syb, dt) =>
-            val dc = DbCollection(DbFinder.Finder(d).db, cl)
+        parameter(paramCollection, paramIdentity, paramCategory, paramSymbol, paramDate) {
+          (cl, id, ct, syb, dt) =>
             val ac = Anchor(
               identity = id,
               category = CategoryFinder.Finder(ct).category,
               symbol = syb,
               date = dt
             )
-            complete(fetchStore(dc, ac))
+            complete(fetchIndustryStore(cl, ac))
         }
       },
       post {
-        parameter(paramDb, paramCollection) { (d, cl) =>
+        parameter(paramCollection) { cl =>
           entity(as[Store]) { st =>
-            val dc = DbCollection(DbFinder.Finder(d).db, cl)
-            onSuccess(upsertStore(dc, st)) { res =>
+            onSuccess(upsertIndustryStore(cl, st)) { res =>
               complete((StatusCodes.Created, res.toString))
             }
           }
@@ -55,21 +53,19 @@ object Routing extends ProModel with SprayJsonSupport {
     )
   }
 
-  private val routeLayout = path(RouteName.layout) {
+  private val routeLayout = path(RouteName.templateLayout) {
     concat(
       get {
-        parameter(paramDb, paramCollection, paramTemplate, paramPanel) {
-          (d, cl, tpl, pn) =>
-            val dc = DbCollection(DbFinder.Finder(d).db, cl)
+        parameter(paramCollection, paramTemplate, paramPanel) {
+          (cl, tpl, pn) =>
             val tp = TemplatePanel(tpl, pn)
-            complete(fetchLayout(dc, tp))
+            complete(fetchTemplateLayout(cl, tp))
         }
       },
       post {
-        parameter(paramDb, paramCollection) { (d, cl) =>
+        parameter(paramCollection) { cl =>
           entity(as[Layout]) { lo =>
-            val dc = DbCollection(DbFinder.Finder(d).db, cl)
-            onSuccess(upsertLayout(dc, lo)) { res =>
+            onSuccess(upsertTemplateLayout(cl, lo)) { res =>
               complete((StatusCodes.Created, res.toString))
             }
           }

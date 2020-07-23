@@ -35,9 +35,9 @@
 
 3. store
 
-    - GET: `http://localhost:2020/ei/dashboard/store?db=bank&collection=layout-dev&identity=%231&category=text`
+    - GET: `http://localhost:2020/ei/dashboard/industry-store?collection=layout-dev&identity=%231&category=text`
     
-    - POST: `http://localhost:2020/ei/dashboard/store?db=bank&collection=layout-dev`
+    - POST: `http://localhost:2020/ei/dashboard/industry-store?collection=layout-dev`
     ```
     {
         "anchor": {
@@ -55,9 +55,9 @@
 
 4. layout
 
-    - GET: `http://localhost:2020/ei/dashboard/layout?db=bank&collection=layout-dev2&template=dev&panel=p`
+    - GET: `http://localhost:2020/ei/dashboard/template-layout?collection=layout-dev2&template=dev&panel=p`
     
-    - POST: `http://localhost:2020/ei/dashboard/layout?db=bank&collection=layout-dev2`
+    - POST: `http://localhost:2020/ei/dashboard/template-layout?collection=layout-dev2`
     ```
     {
         "templatePanel": {
