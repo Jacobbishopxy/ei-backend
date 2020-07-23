@@ -2,7 +2,6 @@ package com.github.jacobbishopxy.eiAdmin
 
 import com.github.jacobbishopxy.MongoModel._
 
-import akka.http.scaladsl.common.NameReceptacle
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
@@ -17,7 +16,7 @@ object Routing extends MongoJsonSupport with ValidatorJsonSupport with QueryJson
   import com.github.jacobbishopxy.eiAdmin.Repo._
 
 
-  private val paramCollection: NameReceptacle[String] = Symbol("collection").as[String]
+  private val paramCollection = Symbol("collection").as[String]
 
   // todo: `handleExceptions()` is required for each route
 
