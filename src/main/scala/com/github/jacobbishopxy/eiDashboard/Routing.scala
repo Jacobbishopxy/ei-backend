@@ -53,6 +53,18 @@ object Routing extends ProModel with SprayJsonSupport {
     )
   }
 
+  private val routeStoreRemove = path(RouteName.industryStoreRemove) {
+    post {
+      parameter(paramCollection) { cl =>
+        entity(as[Anchor]) { ac =>
+          onSuccess(deleteIndustryStore(cl, ac)) { res =>
+            complete((StatusCodes.Created, res.toString))
+          }
+        }
+      }
+    }
+  }
+
   private val routeLayout = path(RouteName.templateLayout) {
     concat(
       get {
@@ -72,6 +84,18 @@ object Routing extends ProModel with SprayJsonSupport {
         }
       }
     )
+  }
+
+  private val routeLayoutRemove = path(RouteName.templateLayoutRemove) {
+    post {
+      parameter(paramCollection) { cl =>
+        entity(as[TemplatePanel]) { tp =>
+          onSuccess(deleteTemplateLayout(cl, tp)) { res =>
+            complete((StatusCodes.Created, res.toString))
+          }
+        }
+      }
+    }
   }
 
   val route: Route =
@@ -113,7 +137,9 @@ object Routing extends ProModel with SprayJsonSupport {
         },
 
         routeStore,
+        routeStoreRemove,
         routeLayout,
+        routeLayoutRemove,
 
       )
     }

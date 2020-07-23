@@ -65,5 +65,7 @@ object Namespace {
 
     val templateLayout = "template-layout"
     val industryStore = "industry-store"
+    val templateLayoutRemove = "template-layout-remove"
+    val industryStoreRemove = "industry-store-remove"
   }
 }

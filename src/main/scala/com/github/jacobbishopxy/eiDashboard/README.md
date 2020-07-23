@@ -33,11 +33,11 @@
     }
     ```
 
-3. store
+3. industry-store
 
-    - GET: `http://localhost:2020/ei/dashboard/industry-store?collection=layout-dev&identity=%231&category=text`
+    - GET: `http://localhost:2020/ei/dashboard/industry-store?collection=store-dev&identity=%231&category=text`
     
-    - POST: `http://localhost:2020/ei/dashboard/industry-store?collection=layout-dev`
+    - POST: `http://localhost:2020/ei/dashboard/industry-store?collection=store-dev`
     ```
     {
         "anchor": {
@@ -53,11 +53,23 @@
     }
     ```
 
-4. layout
+4. industry-store-remove
 
-    - GET: `http://localhost:2020/ei/dashboard/template-layout?collection=layout-dev2&template=dev&panel=p`
+    - POST: `http://localhost:2020/ei/dashboard/industry-store-remove?collection=store-dev`
+    ```
+    {
+        "identity": "#1",
+        "category": "text",
+        "symbol": "000001",
+        "date": "20200721"
+    }
+    ```
+
+5. template-layout
+
+    - GET: `http://localhost:2020/ei/dashboard/template-layout?collection=layout-dev&template=dev&panel=p`
     
-    - POST: `http://localhost:2020/ei/dashboard/template-layout?collection=layout-dev2`
+    - POST: `http://localhost:2020/ei/dashboard/template-layout?collection=layout-dev`
     ```
     {
         "templatePanel": {
@@ -83,3 +95,12 @@
     }
     ```
 
+6. template-layout-remove
+
+    - POST: `http://localhost:2020/ei/dashboard/template-layout-remove?db=bank&collection=layout-dev`
+    ```
+    {
+        "template": "dev",
+        "panel": "p"
+    }
+    ```

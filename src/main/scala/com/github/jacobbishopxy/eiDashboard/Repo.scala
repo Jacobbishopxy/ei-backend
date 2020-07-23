@@ -5,7 +5,7 @@ import org.mongodb.scala._
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model.Filters._
 import org.mongodb.scala.model.{Projections, ReplaceOptions}
-import org.mongodb.scala.result.UpdateResult
+import org.mongodb.scala.result.{DeleteResult, UpdateResult}
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits
@@ -133,19 +133,87 @@ object ProRepo extends ProModel {
     and(templateEqual(tp.template), panelEqual(tp.panel))
 
 
+  // common methods
+
   /**
    *
    * @param dc     : [[DbCollection]]
    * @param anchor : [[Anchor]]
    * @return
    */
-  def fetchStore(dc: DbCollection, anchor: Anchor): Future[Store] = {
-    val cond = anchorCond(anchor)
+  def fetchStore(dc: DbCollection, anchor: Anchor): Future[Store] =
     getCollection[Store](dc.db, dc.collectionName)
-      .find(cond)
+      .find(anchorCond(anchor))
       .first()
       .toFuture()
+
+  /**
+   *
+   * @param dc     : [[DbCollection]]
+   * @param anchor : [[Anchor]]
+   * @return
+   */
+  def deleteStore(dc: DbCollection, anchor: Anchor): Future[DeleteResult] =
+    getCollection[Store](dc.db, dc.collectionName)
+      .deleteMany(anchorCond(anchor))
+      .toFuture()
+
+  /**
+   *
+   * @param dc    : [[DbCollection]]
+   * @param store : [[Store]]
+   * @return
+   */
+  def upsertStore(dc: DbCollection, store: Store): Future[UpdateResult] =
+    getCollection[Store](dc.db, dc.collectionName)
+      .replaceOne(
+        anchorCond(store.anchor),
+        store,
+        ReplaceOptions().upsert(true)
+      )
+      .toFuture()
+
+  /**
+   *
+   * @param dc : [[DbCollection]]
+   * @param tp : [[TemplatePanel]]
+   * @return
+   */
+  def fetchLayout(dc: DbCollection, tp: TemplatePanel): Future[Layout] =
+    getCollection[Layout](dc.db, dc.collectionName)
+      .find(templatePanelCond(tp))
+      .first()
+      .toFuture()
+
+  /**
+   *
+   * @param dc : [[DbCollection]]
+   * @param tp : [[TemplatePanel]]
+   * @return
+   */
+  def deleteLayout(dc: DbCollection, tp: TemplatePanel): Future[DeleteResult] =
+    getCollection[Layout](dc.db, dc.collectionName)
+      .deleteMany(templatePanelCond(tp))
+      .toFuture()
+
+  /**
+   *
+   * @param dc     : [[DbCollection]]
+   * @param layout : [[Layout]]
+   * @return
+   */
+  def upsertLayout(dc: DbCollection, layout: Layout): Future[UpdateResult] = {
+    getCollection[Layout](dc.db, dc.collectionName)
+      .replaceOne(
+        templatePanelCond(layout.templatePanel),
+        layout,
+        ReplaceOptions().upsert(true)
+      )
+      .toFuture()
   }
+
+
+  // api methods
 
   /**
    *
@@ -158,39 +226,12 @@ object ProRepo extends ProModel {
 
   /**
    *
-   * @param dc : [[DbCollection]]
-   * @param tp : [[TemplatePanel]]
-   * @return
-   */
-  def fetchLayout(dc: DbCollection, tp: TemplatePanel): Future[Layout] = {
-    val cond = templatePanelCond(tp)
-    getCollection[Layout](dc.db, dc.collectionName)
-      .find(cond)
-      .first()
-      .toFuture()
-  }
-
-  /**
-   *
    * @param collection : String
-   * @param tp         : [[TemplatePanel]]
+   * @param anchor     : [[Anchor]]
    * @return
    */
-  def fetchTemplateLayout(collection: String, tp: TemplatePanel): Future[Layout] =
-    fetchLayout(DbCollection(DB.Template, collection), tp)
-
-  /**
-   *
-   * @param dc    : [[DbCollection]]
-   * @param store : [[Store]]
-   * @return
-   */
-  def upsertStore(dc: DbCollection, store: Store): Future[UpdateResult] = {
-    val cond = anchorCond(store.anchor)
-    getCollection[Store](dc.db, dc.collectionName)
-      .replaceOne(cond, store, ReplaceOptions().upsert(true))
-      .toFuture()
-  }
+  def deleteIndustryStore(collection: String, anchor: Anchor): Future[DeleteResult] =
+    deleteStore(DbCollection(DB.Industry, collection), anchor)
 
   /**
    *
@@ -203,17 +244,24 @@ object ProRepo extends ProModel {
 
   /**
    *
-   * @param dc     : [[DbCollection]]
-   * @param layout : [[Layout]]
+   * @param collection : String
+   * @param tp         : [[TemplatePanel]]
    * @return
    */
-  def upsertLayout(dc: DbCollection, layout: Layout): Future[UpdateResult] = {
-    val cond = templatePanelCond(layout.templatePanel)
-    getCollection[Layout](dc.db, dc.collectionName)
-      .replaceOne(cond, layout, ReplaceOptions().upsert(true))
-      .toFuture()
-  }
+  def fetchTemplateLayout(collection: String, tp: TemplatePanel): Future[Layout] =
+    fetchLayout(DbCollection(DB.Template, collection), tp)
 
+  // todo: if element removed, effect store
+  /**
+   *
+   * @param collection : String
+   * @param tp         : [[TemplatePanel]]
+   * @return
+   */
+  def deleteTemplateLayout(collection: String, tp: TemplatePanel): Future[DeleteResult] =
+    deleteLayout(DbCollection(DB.Template, collection), tp)
+
+  // todo: if element removed, effect store
   /**
    *
    * @param collection : String
@@ -222,7 +270,6 @@ object ProRepo extends ProModel {
    */
   def upsertTemplateLayout(collection: String, layout: Layout): Future[UpdateResult] =
     upsertLayout(DbCollection(DB.Template, collection), layout)
-
 
 }
 

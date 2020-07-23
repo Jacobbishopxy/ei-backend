@@ -214,9 +214,7 @@ trait ProModel extends DefaultJsonProtocol {
     override def write(obj: Category): JsValue = JsString(obj.name)
 
     override def read(json: JsValue): Category = json match {
-      case JsString(v) =>
-        println(s"v: $v")
-        v.category
+      case JsString(v) => v.category
       case _ => throw new RuntimeException(s"AnyJsonFormat write failed: ${json.toString}")
     }
   }
