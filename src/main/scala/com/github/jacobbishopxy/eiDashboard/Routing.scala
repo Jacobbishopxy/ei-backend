@@ -32,13 +32,10 @@ object Routing extends ProModel with SprayJsonSupport {
       get {
         parameter(paramCollection, paramIdentity, paramCategory, paramSymbol, paramDate) {
           (cl, id, ct, syb, dt) =>
-            val ac = Anchor(
-              identity = id,
-              category = CategoryFinder.Finder(ct).category,
-              symbol = syb,
-              date = dt
-            )
-            complete(fetchIndustryStore(cl, ac))
+            val ac = Anchor(id, CategoryFinder.Finder(ct).category)
+            val acc = AnchorConfig(syb, dt)
+
+            complete(fetchIndustryStore(cl, ac, Some(acc)))
         }
       },
       post {
@@ -57,7 +54,7 @@ object Routing extends ProModel with SprayJsonSupport {
     post {
       parameter(paramCollection) { cl =>
         entity(as[Anchor]) { ac =>
-          onSuccess(deleteIndustryStore(cl, ac)) { res =>
+          onSuccess(deleteIndustryStore(cl, ac, None)) { res =>
             complete((StatusCodes.Created, res.toString))
           }
         }

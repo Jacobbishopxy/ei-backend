@@ -45,6 +45,7 @@ object Namespace {
     val panel = "panel"
     val templatePanel = "templatePanel"
     val anchor = "anchor"
+    val anchorConfig = "anchorConfig"
 
     val identity = "identity"
     val category = "category"

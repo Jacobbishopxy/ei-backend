@@ -97,7 +97,7 @@
 
 6. template-layout-remove
 
-    - POST: `http://localhost:2020/ei/dashboard/template-layout-remove?db=bank&collection=layout-dev`
+    - POST: `http://localhost:2020/ei/dashboard/template-layout-remove?collection=layout-dev`
     ```
     {
         "template": "dev",

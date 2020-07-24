@@ -122,13 +122,11 @@ object ProModel extends DefaultJsonProtocol {
   }
 
 
-  case class Anchor(identity: String,
-                    category: Category,
-                    symbol: Option[String],
-                    date: Option[String]) // maybe more key?
+  case class Anchor(identity: String, category: Category)
+  case class AnchorConfig(symbol: Option[String], date: Option[String])
 
   case class Content(data: String, config: Option[String])
-  case class Store(anchor: Anchor, content: Content)
+  case class Store(anchor: Anchor, anchorConfig: Option[AnchorConfig], content: Content)
 
   case class Coordinate(x: Int, y: Int, h: Int, w: Int)
   case class Element(anchor: Anchor, coordinate: Coordinate)
@@ -184,6 +182,7 @@ trait ProModel extends DefaultJsonProtocol {
   val CR: CodecRegistry = fromRegistries(fromProviders(
     CategoryCodecProvider,
     classOf[Anchor],
+    classOf[AnchorConfig],
     classOf[Content],
     classOf[Store],
     classOf[Coordinate],
@@ -219,9 +218,10 @@ trait ProModel extends DefaultJsonProtocol {
     }
   }
 
-  implicit val anchorFormat: RootJsonFormat[Anchor] = jsonFormat4(Anchor)
+  implicit val anchorFormat: RootJsonFormat[Anchor] = jsonFormat2(Anchor)
+  implicit val anchorConfigFormat: RootJsonFormat[AnchorConfig] = jsonFormat2(AnchorConfig)
   implicit val contentFormat: RootJsonFormat[Content] = jsonFormat2(Content)
-  implicit val storeFormat: RootJsonFormat[Store] = jsonFormat2(Store)
+  implicit val storeFormat: RootJsonFormat[Store] = jsonFormat3(Store)
   implicit val coordinateFormat: RootJsonFormat[Coordinate] = jsonFormat4(Coordinate)
   implicit val elementFormat: RootJsonFormat[Element] = jsonFormat2(Element)
   implicit val gridTemplatePanelFormat: RootJsonFormat[TemplatePanel] = jsonFormat2(TemplatePanel)
