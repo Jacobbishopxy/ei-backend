@@ -5,7 +5,7 @@ import org.mongodb.scala._
 import org.mongodb.scala.bson.codecs.Macros._
 import org.mongodb.scala.MongoClient.DEFAULT_CODEC_REGISTRY
 import org.mongodb.scala.bson.annotations.BsonProperty
-import org.mongodb.scala.model.{CreateCollectionOptions, Filters, Updates, ValidationOptions, Projections}
+import org.mongodb.scala.model._
 import org.mongodb.scala.result.DeleteResult
 import org.bson.codecs.configuration.CodecRegistries.{fromProviders, fromRegistries}
 import org.bson.codecs.configuration.CodecRegistry
@@ -51,18 +51,37 @@ object DevMongo extends App with DevMongoRepo {
 
 
   val infoDB = InfoDB(3, "Postgres", "database", 2, Cord(233, 135)) // fake data
+  val infoDBs = Seq(
+    InfoDB(4, "dev1", "db", 4, Cord(1, 2)),
+    InfoDB(5, "dev2", "file", 6, Cord(2, 3)),
+    InfoDB(6, "dev3", "file", 8, Cord(3, 4)),
+  )
+  val infoDBsUpsert = Seq(
+    InfoDB(5, "dev2u", "db", 3, Cord(0, 1)),
+    InfoDB(6, "dev3u", "file", 5, Cord(0, 0)),
+    InfoDB(7, "dev4", "file", 8, Cord(1, 1)),
+  )
 
-  val insertExe = Await.result(collection.insertOne(infoDB).toFuture(), 10.seconds) // execute action
-  println(insertExe)
+  val insertOne = Await.result(collection.insertOne(infoDB).toFuture(), 10.seconds) // execute action
+  println(insertOne)
 
-  val res = Await.result(collection.find().toFuture(), 10.seconds) // read all
-  println(res)
+  val findAll = Await.result(collection.find().toFuture(), 10.seconds) // read all
+  println(findAll)
 
-  val que = Await.result(collection.find(Filters.eq("name", "Postgres")).toFuture(), 10.seconds)
-  println(que)
+  val findCond = Await.result(collection.find(Filters.eq("name", "Postgres")).toFuture(), 10.seconds)
+  println(findCond)
 
-  val res1 = Await.result(collectionSimple.find().projection(Projections.include("name", "type")).toFuture(), 10.seconds)
-  println(res1)
+  val findPrj = Await.result(collectionSimple.find().projection(Projections.include("name", "type")).toFuture(), 10.seconds)
+  println(findPrj)
+
+  val insertMany = Await.result(collection.insertMany(infoDBs).toFuture(), 10.seconds)
+  println(insertMany)
+
+  val bulkUpsert = infoDBsUpsert.map(i =>
+    ReplaceOneModel(Filters.eq("_id", i.id), i, ReplaceOptions().upsert(true))
+  )
+  val replaceMany = Await.result(collection.bulkWrite(bulkUpsert).toFuture(), 10.seconds)
+  println(replaceMany)
 
 }
 
