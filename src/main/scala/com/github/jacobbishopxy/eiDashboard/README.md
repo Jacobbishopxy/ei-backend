@@ -1,5 +1,7 @@
 # eiDashboard REST
 
+## Routes
+
 1. grid-layouts
 
     - GET: `http://localhost:2020/ei/dashboard/grid-layouts?db=market&collection=layout`

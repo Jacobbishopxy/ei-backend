@@ -41,7 +41,7 @@ object Routing extends ProModel with SprayJsonSupport {
       post {
         parameter(paramCollection) { cl =>
           entity(as[Store]) { st =>
-            onSuccess(upsertIndustryStore(cl, st)) { res =>
+            onSuccess(replaceIndustryStore(cl, st)) { res =>
               complete((StatusCodes.Created, res.toString))
             }
           }
@@ -74,7 +74,7 @@ object Routing extends ProModel with SprayJsonSupport {
       post {
         parameter(paramCollection) { cl =>
           entity(as[Layout]) { lo =>
-            onSuccess(upsertTemplateLayout(cl, lo)) { res =>
+            onSuccess(replaceTemplateLayout(cl, lo)) { res =>
               complete((StatusCodes.Created, res.toString))
             }
           }

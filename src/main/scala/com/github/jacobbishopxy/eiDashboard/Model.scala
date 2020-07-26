@@ -134,6 +134,10 @@ object ProModel extends DefaultJsonProtocol {
   case class TemplatePanel(template: String, panel: String)
   case class Layout(templatePanel: TemplatePanel, layouts: Seq[Element])
 
+  case class LayoutWithStore(templatePanel: TemplatePanel,
+                             layouts: Seq[Element],
+                             stores: Seq[Store])
+
   case class DbCollection(db: DB, collectionName: String)
 
 }
@@ -224,8 +228,9 @@ trait ProModel extends DefaultJsonProtocol {
   implicit val storeFormat: RootJsonFormat[Store] = jsonFormat3(Store)
   implicit val coordinateFormat: RootJsonFormat[Coordinate] = jsonFormat4(Coordinate)
   implicit val elementFormat: RootJsonFormat[Element] = jsonFormat2(Element)
-  implicit val gridTemplatePanelFormat: RootJsonFormat[TemplatePanel] = jsonFormat2(TemplatePanel)
-  implicit val gridLayoutFormat: RootJsonFormat[Layout] = jsonFormat2(Layout)
+  implicit val templatePanelFormat: RootJsonFormat[TemplatePanel] = jsonFormat2(TemplatePanel)
+  implicit val layoutFormat: RootJsonFormat[Layout] = jsonFormat2(Layout)
+  implicit val layoutWithStoreFormat: RootJsonFormat[LayoutWithStore] = jsonFormat3(LayoutWithStore)
 
 }
 

@@ -4,7 +4,7 @@ import com.github.jacobbishopxy.Utilities._
 import org.mongodb.scala._
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model.Filters._
-import org.mongodb.scala.model.{Projections, ReplaceOptions}
+import org.mongodb.scala.model.{Projections, ReplaceOneModel, ReplaceOptions}
 import org.mongodb.scala.result.{DeleteResult, UpdateResult}
 
 import scala.concurrent.Future
@@ -110,7 +110,7 @@ object ProRepo extends ProModel {
 
   private def anchorCond(a: Anchor, ac: Option[AnchorConfig]): Bson = {
 
-    val al = ac.fold(List.empty[Option[Bson]]) (i => List(
+    val al = ac.fold(List.empty[Option[Bson]])(i => List(
       symbolEqual(i.symbol),
       dateEqual(i.date)
     ))
@@ -167,12 +167,27 @@ object ProRepo extends ProModel {
    * @param store : [[Store]]
    * @return
    */
-  def upsertStore(dc: DbCollection, store: Store): Future[UpdateResult] =
+  def replaceStore(dc: DbCollection, store: Store): Future[UpdateResult] =
     getCollection[Store](dc.db, dc.collectionName)
       .replaceOne(
         anchorCond(store.anchor, store.anchorConfig),
         store,
         ReplaceOptions().upsert(true)
+      )
+      .toFuture()
+
+  /**
+   *
+   * @param dc     : [[DbCollection]]
+   * @param stores : Seq[[Store]]
+   * @return
+   */
+  def replaceStores(dc: DbCollection, stores: Seq[Store]): Future[BulkWriteResult] =
+    getCollection[Store](dc.db, dc.collectionName)
+      .bulkWrite(
+        stores.map(i =>
+          ReplaceOneModel(anchorCond(i.anchor, i.anchorConfig), i, ReplaceOptions().upsert(true))
+        )
       )
       .toFuture()
 
@@ -205,7 +220,7 @@ object ProRepo extends ProModel {
    * @param layout : [[Layout]]
    * @return
    */
-  def upsertLayout(dc: DbCollection, layout: Layout): Future[UpdateResult] = {
+  def replaceLayout(dc: DbCollection, layout: Layout): Future[UpdateResult] = {
     getCollection[Layout](dc.db, dc.collectionName)
       .replaceOne(
         templatePanelCond(layout.templatePanel),
@@ -213,6 +228,19 @@ object ProRepo extends ProModel {
         ReplaceOptions().upsert(true)
       )
       .toFuture()
+  }
+
+  def replaceLayoutWithStore(dbCollection: DbCollection, layoutWithStore: LayoutWithStore): Future[BulkWriteResult] = {
+    import Implicits.global
+
+    val tp = layoutWithStore.templatePanel
+    val lo = layoutWithStore.layouts
+    val st = layoutWithStore.stores
+
+    for {
+      _ <- replaceLayout(dbCollection, Layout(tp, lo))
+      res <- replaceStores(dbCollection, st)
+    } yield res
   }
 
 
@@ -242,8 +270,8 @@ object ProRepo extends ProModel {
    * @param store      : [[Store]]
    * @return
    */
-  def upsertIndustryStore(collection: String, store: Store): Future[UpdateResult] =
-    upsertStore(DbCollection(DB.Industry, collection), store)
+  def replaceIndustryStore(collection: String, store: Store): Future[UpdateResult] =
+    replaceStore(DbCollection(DB.Industry, collection), store)
 
   /**
    *
@@ -276,12 +304,8 @@ object ProRepo extends ProModel {
    * @param layout     : [[Layout]]
    * @return
    */
-  def upsertTemplateLayout(collection: String, layout: Layout): Future[UpdateResult] =
-    upsertLayout(DbCollection(DB.Template, collection), layout)
-
-
-
-//  def upsertTemplateLayoutAndIndustryStore(collection: String, layout: Layout, stores: Seq[Store]) = ???
+  def replaceTemplateLayout(collection: String, layout: Layout): Future[UpdateResult] =
+    replaceLayout(DbCollection(DB.Template, collection), layout)
 
 }
 
