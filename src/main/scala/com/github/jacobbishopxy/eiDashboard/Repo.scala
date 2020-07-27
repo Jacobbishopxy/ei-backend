@@ -139,7 +139,7 @@ object ProRepo extends ProModel {
   // common methods
 
   /**
-   *
+   * get store by anchor
    */
   def fetchStore(dc: DbCollection, anchor: Anchor): Future[Store] =
     getCollection[Store](dc.db, dc.collectionName)
@@ -148,7 +148,7 @@ object ProRepo extends ProModel {
       .toFuture()
 
   /**
-   *
+   * get stores by anchors
    */
   def fetchStores(dc: DbCollection, anchors: Seq[Anchor]): Future[Seq[Store]] =
     getCollection[Store](dc.db, dc.collectionName)
@@ -156,7 +156,7 @@ object ProRepo extends ProModel {
       .toFuture()
 
   /**
-   *
+   * delete store by anchor
    */
   def deleteStore(dc: DbCollection, anchor: Anchor): Future[DeleteResult] =
     getCollection[Store](dc.db, dc.collectionName)
@@ -164,7 +164,7 @@ object ProRepo extends ProModel {
       .toFuture()
 
   /**
-   *
+   * delete stores by anchors
    */
   def deleteStores(dc: DbCollection, anchors: Seq[Anchor]): Future[DeleteResult] =
     getCollection[Store](dc.db, dc.collectionName)
@@ -172,7 +172,7 @@ object ProRepo extends ProModel {
       .toFuture()
 
   /**
-   *
+   * modify store by store
    */
   def replaceStore(dc: DbCollection, store: Store): Future[UpdateResult] =
     getCollection[Store](dc.db, dc.collectionName)
@@ -184,7 +184,7 @@ object ProRepo extends ProModel {
       .toFuture()
 
   /**
-   *
+   * modify stores by stores
    */
   def replaceStores(dc: DbCollection, stores: Seq[Store]): Future[BulkWriteResult] =
     getCollection[Store](dc.db, dc.collectionName)
@@ -196,7 +196,7 @@ object ProRepo extends ProModel {
       .toFuture()
 
   /**
-   *
+   * get layout by templatePanel
    */
   def fetchLayout(dc: DbCollection, tp: TemplatePanel): Future[Layout] =
     getCollection[Layout](dc.db, dc.collectionName)
@@ -205,7 +205,7 @@ object ProRepo extends ProModel {
       .toFuture()
 
   /**
-   *
+   * delete layout by templatePanel
    */
   def deleteLayout(dc: DbCollection, tp: TemplatePanel): Future[DeleteResult] =
     getCollection[Layout](dc.db, dc.collectionName)
@@ -213,7 +213,7 @@ object ProRepo extends ProModel {
       .toFuture()
 
   /**
-   *
+   * modify layout by layout
    */
   def replaceLayout(dc: DbCollection, layout: Layout): Future[UpdateResult] = {
     getCollection[Layout](dc.db, dc.collectionName)
@@ -247,46 +247,49 @@ object ProRepo extends ProModel {
   // api methods
 
   /**
-   *
+   * get industry store by anchor
    */
   def fetchIndustryStore(collection: String, anchor: Anchor): Future[Store] =
     fetchStore(DbCollection(DB.Industry, collection), anchor)
 
+  /**
+   * get industry stores by anchors
+   */
   def fetchIndustryStores(collection: String, anchors: Seq[Anchor]): Future[Seq[Store]] =
     fetchStores(DbCollection(DB.Industry, collection), anchors)
 
   /**
-   *
+   * delete industry store by anchor
    */
   def deleteIndustryStore(collection: String, anchor: Anchor): Future[DeleteResult] =
     deleteStore(DbCollection(DB.Industry, collection), anchor)
 
   /**
-   *
+   * delete industry stores by anchors
    */
   def deleteIndustryStores(collection: String, anchors: Seq[Anchor]): Future[DeleteResult] =
     deleteStores(DbCollection(DB.Industry, collection), anchors)
 
   /**
-   *
+   * modify industry store by store
    */
   def replaceIndustryStore(collection: String, store: Store): Future[UpdateResult] =
     replaceStore(DbCollection(DB.Industry, collection), store)
 
   /**
-   *
+   * modify industry stores by stores
    */
   def replaceIndustryStores(collection: String, stores: Seq[Store]): Future[BulkWriteResult] =
     replaceStores(DbCollection(DB.Industry, collection), stores)
 
   /**
-   *
+   * get template layout by templatePanel
    */
   def fetchTemplateLayout(collection: String, tp: TemplatePanel): Future[Layout] =
     fetchLayout(DbCollection(DB.Template, collection), tp)
 
   /**
-   *
+   * delete template layout by templatePanel
    */
   def deleteTemplateLayout(collection: String, tp: TemplatePanel): Future[DeleteResult] = {
     import Implicits.global
@@ -299,7 +302,7 @@ object ProRepo extends ProModel {
   }
 
   /**
-   *
+   * modify template layout by layout
    */
   def replaceTemplateLayout(collection: String, layout: Layout): Future[UpdateResult] =
     replaceLayout(DbCollection(DB.Template, collection), layout)

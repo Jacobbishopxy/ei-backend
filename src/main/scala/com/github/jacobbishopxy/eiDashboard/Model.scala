@@ -188,6 +188,7 @@ trait ProModel extends DefaultJsonProtocol {
     CategoryCodecProvider,
     classOf[AnchorKey],
     classOf[AnchorConfig],
+    classOf[Anchor],
     classOf[Content],
     classOf[Store],
     classOf[Coordinate],
