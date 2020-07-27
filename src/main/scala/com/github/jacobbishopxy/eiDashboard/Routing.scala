@@ -52,7 +52,7 @@ object Routing extends ProModel with SprayJsonSupport {
       parameter(paramCollection) { cl =>
         entity(as[Store]) { st =>
           onSuccess(replaceIndustryStore(cl, st)) { res =>
-            complete((StatusCodes.Created, res.toString))
+            complete((StatusCodes.Accepted, res.toString))
           }
         }
       }
@@ -64,7 +64,7 @@ object Routing extends ProModel with SprayJsonSupport {
       parameter(paramCollection) { cl =>
         entity(as[Seq[Store]]) { sts =>
           onSuccess(replaceIndustryStores(cl, sts)) { res =>
-            complete((StatusCodes.Created, res.toString))
+            complete((StatusCodes.Accepted, res.toString))
           }
         }
       }
@@ -76,7 +76,7 @@ object Routing extends ProModel with SprayJsonSupport {
       parameter(paramCollection) { cl =>
         entity(as[Anchor]) { ac =>
           onSuccess(deleteIndustryStore(cl, ac)) { res =>
-            complete((StatusCodes.Created, res.toString))
+            complete((StatusCodes.Accepted, res.toString))
           }
         }
       }
@@ -88,7 +88,7 @@ object Routing extends ProModel with SprayJsonSupport {
       parameter(paramCollection) { cl =>
         entity(as[Seq[Anchor]]) { acs =>
           onSuccess(deleteIndustryStores(cl, acs)) { res =>
-            complete((StatusCodes.Created, res.toString))
+            complete((StatusCodes.Accepted, res.toString))
           }
         }
       }
@@ -108,7 +108,7 @@ object Routing extends ProModel with SprayJsonSupport {
         parameter(paramCollection) { cl =>
           entity(as[Layout]) { lo =>
             onSuccess(replaceTemplateLayout(cl, lo)) { res =>
-              complete((StatusCodes.Created, res.toString))
+              complete((StatusCodes.Accepted, res.toString))
             }
           }
         }
@@ -121,7 +121,19 @@ object Routing extends ProModel with SprayJsonSupport {
       parameter(paramCollection) { cl =>
         entity(as[TemplatePanel]) { tp =>
           onSuccess(deleteTemplateLayout(cl, tp)) { res =>
-            complete((StatusCodes.Created, res.toString))
+            complete((StatusCodes.Accepted, res.toString))
+          }
+        }
+      }
+    }
+  }
+
+  private val routeLayoutStoreModify = path(RouteName.templateLayoutWithIndustryStoreModify) {
+    post {
+      parameter(paramCollection) { cl =>
+        entity(as[LayoutWithStore]) { tp =>
+          onSuccess(replaceTemplateLayoutWithIndustryStore(cl, tp)) { res =>
+            complete((StatusCodes.Accepted, res.toString))
           }
         }
       }
@@ -174,6 +186,7 @@ object Routing extends ProModel with SprayJsonSupport {
         routeStoresRemove,
         routeLayout,
         routeLayoutRemove,
+        routeLayoutStoreModify,
 
       )
     }
