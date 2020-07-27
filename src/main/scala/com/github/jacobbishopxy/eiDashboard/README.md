@@ -106,3 +106,7 @@
         "panel": "p"
     }
     ```
+
+7. template-layout-industry-store
+
+    - POST: ``

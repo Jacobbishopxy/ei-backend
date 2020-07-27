@@ -108,15 +108,15 @@ object ProRepo extends ProModel {
   private val dateEqual = (d: Option[String]) =>
     d.map(equal(s"${FieldName.anchorConfig}.${FieldName.date}", _))
 
-  private def anchorCond(a: Anchor, ac: Option[AnchorConfig]): Bson = {
+  private def anchorCond(a: Anchor): Bson = {
 
-    val al = ac.fold(List.empty[Option[Bson]])(i => List(
+    val al = a.anchorConfig.fold(List.empty[Option[Bson]])(i => List(
       symbolEqual(i.symbol),
       dateEqual(i.date)
     ))
     val l = List(
-      identityEqual(a.identity),
-      categoryEqual(a.category),
+      identityEqual(a.anchorKey.identity),
+      categoryEqual(a.anchorKey.category),
     ) ::: al
 
     val cds = l.foldLeft(List.empty[Bson]) {
@@ -140,37 +140,44 @@ object ProRepo extends ProModel {
 
   /**
    *
-   * @param dc     : [[DbCollection]]
-   * @param anchor : [[Anchor]]
-   * @return
    */
-  def fetchStore(dc: DbCollection, anchor: Anchor, anchorConfig: Option[AnchorConfig]): Future[Store] =
+  def fetchStore(dc: DbCollection, anchor: Anchor): Future[Store] =
     getCollection[Store](dc.db, dc.collectionName)
-      .find(anchorCond(anchor, anchorConfig))
+      .find(anchorCond(anchor))
       .first()
       .toFuture()
 
   /**
    *
-   * @param dc     : [[DbCollection]]
-   * @param anchor : [[Anchor]]
-   * @return
    */
-  def deleteStore(dc: DbCollection, anchor: Anchor, anchorConfig: Option[AnchorConfig]): Future[DeleteResult] =
+  def fetchStores(dc: DbCollection, anchors: Seq[Anchor]): Future[Seq[Store]] =
     getCollection[Store](dc.db, dc.collectionName)
-      .deleteMany(anchorCond(anchor, anchorConfig))
+      .find(or(anchors.map(anchorCond): _*))
       .toFuture()
 
   /**
    *
-   * @param dc    : [[DbCollection]]
-   * @param store : [[Store]]
-   * @return
+   */
+  def deleteStore(dc: DbCollection, anchor: Anchor): Future[DeleteResult] =
+    getCollection[Store](dc.db, dc.collectionName)
+      .deleteMany(anchorCond(anchor))
+      .toFuture()
+
+  /**
+   *
+   */
+  def deleteStores(dc: DbCollection, anchors: Seq[Anchor]): Future[DeleteResult] =
+    getCollection[Store](dc.db, dc.collectionName)
+      .deleteMany(or(anchors.map(anchorCond): _*))
+      .toFuture()
+
+  /**
+   *
    */
   def replaceStore(dc: DbCollection, store: Store): Future[UpdateResult] =
     getCollection[Store](dc.db, dc.collectionName)
       .replaceOne(
-        anchorCond(store.anchor, store.anchorConfig),
+        anchorCond(Anchor(store.anchorKey, None)),
         store,
         ReplaceOptions().upsert(true)
       )
@@ -178,24 +185,18 @@ object ProRepo extends ProModel {
 
   /**
    *
-   * @param dc     : [[DbCollection]]
-   * @param stores : Seq[[Store]]
-   * @return
    */
   def replaceStores(dc: DbCollection, stores: Seq[Store]): Future[BulkWriteResult] =
     getCollection[Store](dc.db, dc.collectionName)
       .bulkWrite(
         stores.map(i =>
-          ReplaceOneModel(anchorCond(i.anchor, i.anchorConfig), i, ReplaceOptions().upsert(true))
+          ReplaceOneModel(anchorCond(Anchor(i.anchorKey, i.anchorConfig)), i, ReplaceOptions().upsert(true))
         )
       )
       .toFuture()
 
   /**
    *
-   * @param dc : [[DbCollection]]
-   * @param tp : [[TemplatePanel]]
-   * @return
    */
   def fetchLayout(dc: DbCollection, tp: TemplatePanel): Future[Layout] =
     getCollection[Layout](dc.db, dc.collectionName)
@@ -205,9 +206,6 @@ object ProRepo extends ProModel {
 
   /**
    *
-   * @param dc : [[DbCollection]]
-   * @param tp : [[TemplatePanel]]
-   * @return
    */
   def deleteLayout(dc: DbCollection, tp: TemplatePanel): Future[DeleteResult] =
     getCollection[Layout](dc.db, dc.collectionName)
@@ -216,9 +214,6 @@ object ProRepo extends ProModel {
 
   /**
    *
-   * @param dc     : [[DbCollection]]
-   * @param layout : [[Layout]]
-   * @return
    */
   def replaceLayout(dc: DbCollection, layout: Layout): Future[UpdateResult] = {
     getCollection[Layout](dc.db, dc.collectionName)
@@ -230,7 +225,12 @@ object ProRepo extends ProModel {
       .toFuture()
   }
 
-  def replaceLayoutWithStore(dbCollection: DbCollection, layoutWithStore: LayoutWithStore): Future[BulkWriteResult] = {
+  /**
+   *
+   */
+  def replaceLayoutWithStore(layoutDC: DbCollection,
+                             storeDC: DbCollection,
+                             layoutWithStore: LayoutWithStore): Future[BulkWriteResult] = {
     import Implicits.global
 
     val tp = layoutWithStore.templatePanel
@@ -238,8 +238,8 @@ object ProRepo extends ProModel {
     val st = layoutWithStore.stores
 
     for {
-      _ <- replaceLayout(dbCollection, Layout(tp, lo))
-      res <- replaceStores(dbCollection, st)
+      _ <- replaceLayout(layoutDC, Layout(tp, lo))
+      res <- replaceStores(storeDC, st)
     } yield res
   }
 
@@ -248,64 +248,73 @@ object ProRepo extends ProModel {
 
   /**
    *
-   * @param collection : String
-   * @param anchor     : [[Anchor]]
-   * @return
    */
-  def fetchIndustryStore(collection: String, anchor: Anchor, anchorConfig: Option[AnchorConfig]): Future[Store] =
-    fetchStore(DbCollection(DB.Industry, collection), anchor, anchorConfig)
+  def fetchIndustryStore(collection: String, anchor: Anchor): Future[Store] =
+    fetchStore(DbCollection(DB.Industry, collection), anchor)
+
+  def fetchIndustryStores(collection: String, anchors: Seq[Anchor]): Future[Seq[Store]] =
+    fetchStores(DbCollection(DB.Industry, collection), anchors)
 
   /**
    *
-   * @param collection : String
-   * @param anchor     : [[Anchor]]
-   * @return
    */
-  def deleteIndustryStore(collection: String, anchor: Anchor, anchorConfig: Option[AnchorConfig]): Future[DeleteResult] =
-    deleteStore(DbCollection(DB.Industry, collection), anchor, anchorConfig)
+  def deleteIndustryStore(collection: String, anchor: Anchor): Future[DeleteResult] =
+    deleteStore(DbCollection(DB.Industry, collection), anchor)
 
   /**
    *
-   * @param collection : String
-   * @param store      : [[Store]]
-   * @return
+   */
+  def deleteIndustryStores(collection: String, anchors: Seq[Anchor]): Future[DeleteResult] =
+    deleteStores(DbCollection(DB.Industry, collection), anchors)
+
+  /**
+   *
    */
   def replaceIndustryStore(collection: String, store: Store): Future[UpdateResult] =
     replaceStore(DbCollection(DB.Industry, collection), store)
 
   /**
    *
-   * @param collection : String
-   * @param tp         : [[TemplatePanel]]
-   * @return
+   */
+  def replaceIndustryStores(collection: String, stores: Seq[Store]): Future[BulkWriteResult] =
+    replaceStores(DbCollection(DB.Industry, collection), stores)
+
+  /**
+   *
    */
   def fetchTemplateLayout(collection: String, tp: TemplatePanel): Future[Layout] =
     fetchLayout(DbCollection(DB.Template, collection), tp)
 
   /**
    *
-   * @param collection : String
-   * @param tp         : [[TemplatePanel]]
-   * @return
    */
   def deleteTemplateLayout(collection: String, tp: TemplatePanel): Future[DeleteResult] = {
     import Implicits.global
 
     for {
       lo <- fetchTemplateLayout(collection, tp)
-      _ <- Future.sequence(lo.layouts.map(i => deleteIndustryStore(collection, i.anchor, None)))
+      _ <- Future.sequence(lo.layouts.map(i => deleteIndustryStore(collection, Anchor(i.anchorKey, None))))
       res <- deleteLayout(DbCollection(DB.Template, collection), tp)
     } yield res
   }
 
   /**
    *
-   * @param collection : String
-   * @param layout     : [[Layout]]
-   * @return
    */
   def replaceTemplateLayout(collection: String, layout: Layout): Future[UpdateResult] =
     replaceLayout(DbCollection(DB.Template, collection), layout)
+
+  /**
+   *
+   */
+  def replaceTemplateLayoutWithIndustryStore(collection: String,
+                                             layoutWithStore: LayoutWithStore): Future[BulkWriteResult] =
+    replaceLayoutWithStore(
+      DbCollection(DB.Template, collection),
+      DbCollection(DB.Industry, collection),
+      layoutWithStore
+    )
+
 
 }
 

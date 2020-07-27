@@ -122,14 +122,15 @@ object ProModel extends DefaultJsonProtocol {
   }
 
 
-  case class Anchor(identity: String, category: Category)
+  case class AnchorKey(identity: String, category: Category)
   case class AnchorConfig(symbol: Option[String], date: Option[String])
+  case class Anchor(anchorKey: AnchorKey, anchorConfig: Option[AnchorConfig])
 
   case class Content(data: String, config: Option[String])
-  case class Store(anchor: Anchor, anchorConfig: Option[AnchorConfig], content: Content)
+  case class Store(anchorKey: AnchorKey, anchorConfig: Option[AnchorConfig], content: Content)
 
   case class Coordinate(x: Int, y: Int, h: Int, w: Int)
-  case class Element(anchor: Anchor, coordinate: Coordinate)
+  case class Element(anchorKey: AnchorKey, coordinate: Coordinate)
 
   case class TemplatePanel(template: String, panel: String)
   case class Layout(templatePanel: TemplatePanel, layouts: Seq[Element])
@@ -185,7 +186,7 @@ trait ProModel extends DefaultJsonProtocol {
 
   val CR: CodecRegistry = fromRegistries(fromProviders(
     CategoryCodecProvider,
-    classOf[Anchor],
+    classOf[AnchorKey],
     classOf[AnchorConfig],
     classOf[Content],
     classOf[Store],
@@ -222,8 +223,9 @@ trait ProModel extends DefaultJsonProtocol {
     }
   }
 
-  implicit val anchorFormat: RootJsonFormat[Anchor] = jsonFormat2(Anchor)
+  implicit val anchorKeyFormat: RootJsonFormat[AnchorKey] = jsonFormat2(AnchorKey)
   implicit val anchorConfigFormat: RootJsonFormat[AnchorConfig] = jsonFormat2(AnchorConfig)
+  implicit val anchorFormat: RootJsonFormat[Anchor] = jsonFormat2(Anchor)
   implicit val contentFormat: RootJsonFormat[Content] = jsonFormat2(Content)
   implicit val storeFormat: RootJsonFormat[Store] = jsonFormat3(Store)
   implicit val coordinateFormat: RootJsonFormat[Coordinate] = jsonFormat4(Coordinate)

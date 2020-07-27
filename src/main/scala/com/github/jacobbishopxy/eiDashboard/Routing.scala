@@ -21,40 +21,73 @@ object Routing extends ProModel with SprayJsonSupport {
   private val paramCollection = Symbol(FieldName.collection).as[String]
   private val paramTemplate = Symbol(FieldName.template).as[String]
   private val paramPanel = Symbol(FieldName.panel).as[String]
-  private val paramIdentity = Symbol(FieldName.identity).as[String]
-  private val paramCategory = Symbol(FieldName.category).as[String]
-  private val paramSymbol = FieldName.symbol.?
-  private val paramDate = FieldName.date.?
 
 
-  private val routeStore = path(RouteName.industryStore) {
-    concat(
-      get {
-        parameter(paramCollection, paramIdentity, paramCategory, paramSymbol, paramDate) {
-          (cl, id, ct, syb, dt) =>
-            val ac = Anchor(id, CategoryFinder.Finder(ct).category)
-            val acc = AnchorConfig(syb, dt)
-
-            complete(fetchIndustryStore(cl, ac, Some(acc)))
-        }
-      },
-      post {
-        parameter(paramCollection) { cl =>
-          entity(as[Store]) { st =>
-            onSuccess(replaceIndustryStore(cl, st)) { res =>
-              complete((StatusCodes.Created, res.toString))
-            }
+  private val routeStoreFetch = path(RouteName.industryStoreFetch) {
+    post {
+      parameter(paramCollection) { cl =>
+        entity(as[Anchor]) { ac =>
+          onSuccess(fetchIndustryStore(cl, ac)) { res =>
+            complete((StatusCodes.Accepted, res))
           }
         }
       }
-    )
+    }
+  }
+
+  private val routeStoresFetch = path(RouteName.industryStoresFetch) {
+    post {
+      parameter(paramCollection) { cl =>
+        entity(as[Seq[Anchor]]) { acs =>
+          onSuccess(fetchIndustryStores(cl, acs)) { res =>
+            complete((StatusCodes.Accepted, res))
+          }
+        }
+      }
+    }
+  }
+
+  private val routeStoreModify = path(RouteName.industryStoreModify) {
+    post {
+      parameter(paramCollection) { cl =>
+        entity(as[Store]) { st =>
+          onSuccess(replaceIndustryStore(cl, st)) { res =>
+            complete((StatusCodes.Created, res.toString))
+          }
+        }
+      }
+    }
+  }
+
+  private val routeStoresModify = path(RouteName.industryStoresModify) {
+    post {
+      parameter(paramCollection) { cl =>
+        entity(as[Seq[Store]]) { sts =>
+          onSuccess(replaceIndustryStores(cl, sts)) { res =>
+            complete((StatusCodes.Created, res.toString))
+          }
+        }
+      }
+    }
   }
 
   private val routeStoreRemove = path(RouteName.industryStoreRemove) {
     post {
       parameter(paramCollection) { cl =>
         entity(as[Anchor]) { ac =>
-          onSuccess(deleteIndustryStore(cl, ac, None)) { res =>
+          onSuccess(deleteIndustryStore(cl, ac)) { res =>
+            complete((StatusCodes.Created, res.toString))
+          }
+        }
+      }
+    }
+  }
+
+  private val routeStoresRemove = path(RouteName.industryStoresRemove) {
+    post {
+      parameter(paramCollection) { cl =>
+        entity(as[Seq[Anchor]]) { acs =>
+          onSuccess(deleteIndustryStores(cl, acs)) { res =>
             complete((StatusCodes.Created, res.toString))
           }
         }
@@ -133,8 +166,12 @@ object Routing extends ProModel with SprayJsonSupport {
           }
         },
 
-        routeStore,
+        routeStoreFetch,
+        routeStoresFetch,
+        routeStoreModify,
+        routeStoresModify,
         routeStoreRemove,
+        routeStoresRemove,
         routeLayout,
         routeLayoutRemove,
 

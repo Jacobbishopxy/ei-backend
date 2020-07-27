@@ -65,8 +65,12 @@ object Namespace {
     val store = "store"
 
     val templateLayout = "template-layout"
-    val industryStore = "industry-store"
-    val templateLayoutRemove = "template-layout-remove"
+    val industryStoreFetch = "industry-store-fetch"
+    val industryStoresFetch = "industry-stores-fetch"
+    val industryStoreModify = "industry-store-modify"
+    val industryStoresModify = "industry-stores-modify"
     val industryStoreRemove = "industry-store-remove"
+    val industryStoresRemove = "industry-stores-remove"
+    val templateLayoutRemove = "template-layout-remove"
   }
 }
