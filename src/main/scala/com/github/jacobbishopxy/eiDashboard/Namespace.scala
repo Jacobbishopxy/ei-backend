@@ -44,8 +44,9 @@ object Namespace {
     val template = "template"
     val panel = "panel"
     val templatePanel = "templatePanel"
-    val anchor = "anchor"
+    val anchorKey = "anchorKey"
     val anchorConfig = "anchorConfig"
+    val anchor = "anchor"
 
     val identity = "identity"
     val category = "category"
@@ -64,13 +65,14 @@ object Namespace {
     val layout = "layout"
     val store = "store"
 
-    val templateLayout = "template-layout"
     val industryStoreFetch = "industry-store-fetch"
     val industryStoresFetch = "industry-stores-fetch"
     val industryStoreModify = "industry-store-modify"
     val industryStoresModify = "industry-stores-modify"
     val industryStoreRemove = "industry-store-remove"
     val industryStoresRemove = "industry-stores-remove"
+
+    val templateLayout = "template-layout"
     val templateLayoutRemove = "template-layout-remove"
 
     val templateLayoutWithIndustryStoreModify = "template-layout-industry-store-modify"

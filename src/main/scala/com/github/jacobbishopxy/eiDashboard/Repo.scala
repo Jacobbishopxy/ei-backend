@@ -100,9 +100,9 @@ object ProRepo extends ProModel {
 
 
   private val identityEqual = (i: String) =>
-    Some(equal(s"${FieldName.anchor}.${FieldName.identity}", i))
+    Some(equal(s"${FieldName.anchorKey}.${FieldName.identity}", i))
   private val categoryEqual = (c: Category) =>
-    Some(equal(s"${FieldName.anchor}.${FieldName.category}.${EnumIdentifierName.category}", c.name))
+    Some(equal(s"${FieldName.anchorKey}.${FieldName.category}.${EnumIdentifierName.category}", c.name))
   private val symbolEqual = (s: Option[String]) =>
     s.map(equal(s"${FieldName.anchorConfig}.${FieldName.symbol}", _))
   private val dateEqual = (d: Option[String]) =>
@@ -141,11 +141,14 @@ object ProRepo extends ProModel {
   /**
    * get store by anchor
    */
-  def fetchStore(dc: DbCollection, anchor: Anchor): Future[Store] =
+  def fetchStore(dc: DbCollection, anchor: Anchor): Future[Option[Store]] = {
+    import Implicits.global
+
     getCollection[Store](dc.db, dc.collectionName)
       .find(anchorCond(anchor))
-      .first()
       .toFuture()
+      .map(_.headOption)
+  }
 
   /**
    * get stores by anchors
@@ -177,7 +180,7 @@ object ProRepo extends ProModel {
   def replaceStore(dc: DbCollection, store: Store): Future[UpdateResult] =
     getCollection[Store](dc.db, dc.collectionName)
       .replaceOne(
-        anchorCond(Anchor(store.anchorKey, None)),
+        anchorCond(Anchor(store.anchorKey, store.anchorConfig)),
         store,
         ReplaceOptions().upsert(true)
       )
@@ -198,11 +201,14 @@ object ProRepo extends ProModel {
   /**
    * get layout by templatePanel
    */
-  def fetchLayout(dc: DbCollection, tp: TemplatePanel): Future[Layout] =
+  def fetchLayout(dc: DbCollection, tp: TemplatePanel): Future[Option[Layout]] = {
+    import Implicits.global
+
     getCollection[Layout](dc.db, dc.collectionName)
       .find(templatePanelCond(tp))
-      .first()
       .toFuture()
+      .map(_.headOption)
+  }
 
   /**
    * delete layout by templatePanel
@@ -249,7 +255,7 @@ object ProRepo extends ProModel {
   /**
    * get industry store by anchor
    */
-  def fetchIndustryStore(collection: String, anchor: Anchor): Future[Store] =
+  def fetchIndustryStore(collection: String, anchor: Anchor): Future[Option[Store]] =
     fetchStore(DbCollection(DB.Industry, collection), anchor)
 
   /**
@@ -285,7 +291,7 @@ object ProRepo extends ProModel {
   /**
    * get template layout by templatePanel
    */
-  def fetchTemplateLayout(collection: String, tp: TemplatePanel): Future[Layout] =
+  def fetchTemplateLayout(collection: String, tp: TemplatePanel): Future[Option[Layout]] =
     fetchLayout(DbCollection(DB.Template, collection), tp)
 
   /**
@@ -296,7 +302,12 @@ object ProRepo extends ProModel {
 
     for {
       lo <- fetchTemplateLayout(collection, tp)
-      _ <- Future.sequence(lo.layouts.map(i => deleteIndustryStore(collection, Anchor(i.anchorKey, None))))
+      _ <- {
+        lo match {
+          case None => Future.unit
+          case Some(v) => deleteIndustryStores(collection, v.layouts.map(i => Anchor(i.anchorKey, None)))
+        }
+      }
       res <- deleteLayout(DbCollection(DB.Template, collection), tp)
     } yield res
   }

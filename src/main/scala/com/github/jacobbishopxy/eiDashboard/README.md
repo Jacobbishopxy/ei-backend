@@ -35,18 +35,62 @@
     }
     ```
 
-3. industry-store
+3. industry-store-fetch
 
-    - GET: `http://localhost:2020/ei/dashboard/industry-store?collection=store-dev&identity=%231&category=text`
-    
-    - POST: `http://localhost:2020/ei/dashboard/industry-store?collection=store-dev`
+    - POST: `http://localhost:2020/ei/dashboard/industry-store-fetch?collection=dev`
     ```
     {
-        "anchor": {
-            "identity": "#1",
-            "category": "text",
+        "anchorKey": {
+            "identity": "num1",
+            "category": "text"
+        },
+        "anchorConfig": {
             "symbol": "000001",
             "date": "20200721"
+        }
+    }
+    ```
+
+4. industry-stores-fetch
+
+    - POST: `http://localhost:2020/ei/dashboard/industry-stores-fetch?collection=dev`
+    ```
+    [
+        {
+            "anchorKey": {
+                "identity": "num1",
+                "category": "text"
+            },
+            "anchorConfig": {
+                "symbol": "000001",
+                "date": "20200721"
+            }
+        },
+        {
+            "anchorKey": {
+                "identity": "num2",
+                "category": "text"
+            },
+            "anchorConfig": {
+                "symbol": "000001",
+                "date": "20200721"
+            }
+        }
+    ]
+    ```
+
+5. industry-store-modify
+
+    - POST: `http://localhost:2020/ei/dashboard/industry-store-modify?collection=dev`
+    ```
+    {
+        "anchorKey": {
+            "identity": "num1",
+            "category": "text"
+        },
+        "anchorConfig": {
+            "symbol": "000001",
+            "date": "20200101"
         },
         "content": {
             "data": "dev data321",
@@ -55,23 +99,75 @@
     }
     ```
 
-4. industry-store-remove
+5. industry-stores-modify
 
-    - POST: `http://localhost:2020/ei/dashboard/industry-store-remove?collection=store-dev`
+    - POST: `http://localhost:2020/ei/dashboard/industry-stores-modify?collection=dev`
     ```
     {
-        "identity": "#1",
-        "category": "text",
-        "symbol": "000001",
-        "date": "20200721"
+        "anchorKey": {
+            "identity": "num1",
+            "category": "text"
+        },
+        "anchorConfig": {
+            "symbol": "000001",
+            "date": "20200101"
+        },
+        "content": {
+            "data": "dev data321",
+            "config": "dev config"
+        }
     }
     ```
 
-5. template-layout
+6. industry-store-remove
 
-    - GET: `http://localhost:2020/ei/dashboard/template-layout?collection=layout-dev&template=dev&panel=p`
+    - POST: `http://localhost:2020/ei/dashboard/industry-store-remove?collection=dev`
+    ```
+    {
+        "anchorKey": {
+            "identity": "num1",
+            "category": "text"
+        },
+        "anchorConfig": {
+            "symbol": "000001",
+            "date": "20200101"
+        }
+    }
+    ```
+
+7. industry-stores-remove
+
+    - POST: `http://localhost:2020/ei/dashboard/industry-stores-remove?collection=dev`
+    ```
+    [
+        {
+            "anchorKey": {
+                "identity": "num1",
+                "category": "text"
+            },
+            "anchorConfig": {
+                "symbol": "000001",
+                "date": "20200101"
+            }
+        },
+        {
+            "anchorKey": {
+                "identity": "num2",
+                "category": "text"
+            },
+            "anchorConfig": {
+                "symbol": "000001",
+                "date": "20200101"
+            }
+        }
+    ]
+    ```
+
+8. template-layout
+
+    - GET: `http://localhost:2020/ei/dashboard/template-layout?collection=dev&template=dev&panel=p`
     
-    - POST: `http://localhost:2020/ei/dashboard/template-layout?collection=layout-dev`
+    - POST: `http://localhost:2020/ei/dashboard/template-layout?collection=dev`
     ```
     {
         "templatePanel": {
@@ -80,11 +176,9 @@
         },
         "layouts": [
             {
-                "anchor": {
+                "anchorKey": {
                     "identity": "num1",
-                    "category": "text",
-                    "symbol": "000001",
-                    "date": "20200101"
+                    "category": "text"
                 },
                 "coordinate": {
                     "x": 1,
@@ -97,9 +191,9 @@
     }
     ```
 
-6. template-layout-remove
+9. template-layout-remove
 
-    - POST: `http://localhost:2020/ei/dashboard/template-layout-remove?collection=layout-dev`
+    - POST: `http://localhost:2020/ei/dashboard/template-layout-remove?collection=dev`
     ```
     {
         "template": "dev",
@@ -107,6 +201,44 @@
     }
     ```
 
-7. template-layout-industry-store
+10. template-layout-industry-store-modify
 
-    - POST: ``
+    - POST: `http://localhost:2020/ei/dashboard/template-layout-industry-store-modify?collection=dev`
+    ```
+    {
+        "templatePanel": {
+            "template": "dev",
+            "panel": "p"
+        },
+        "layouts": [
+            {
+                "anchorKey": {
+                    "identity": "num1",
+                    "category": "text"
+                },
+                "coordinate": {
+                    "x": 1,
+                    "y": 2,
+                    "h": 3,
+                    "w": 4
+                }
+            }
+        ],
+        "stores": [
+            {
+                "anchorKey": {
+                    "identity": "num1",
+                    "category": "text"
+                },
+                "anchorConfig": {
+                    "symbol": "000001",
+                    "date": "20200101"
+                },
+                "content": {
+                    "data": "dev data321",
+                    "config": "dev config"
+                }
+            }
+        ]
+    }
+    ```
