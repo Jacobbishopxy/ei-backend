@@ -95,25 +95,29 @@ object Routing extends ProModel with SprayJsonSupport {
     }
   }
 
-  private val routeLayout = path(RouteName.templateLayout) {
-    concat(
-      get {
-        parameter(paramCollection, paramTemplate, paramPanel) {
-          (cl, tpl, pn) =>
-            val tp = TemplatePanel(tpl, pn)
-            complete(fetchTemplateLayout(cl, tp))
-        }
-      },
-      post {
-        parameter(paramCollection) { cl =>
-          entity(as[Layout]) { lo =>
-            onSuccess(replaceTemplateLayout(cl, lo)) { res =>
-              complete((StatusCodes.Accepted, res.toString))
-            }
+  private val routeLayoutFetch = path(RouteName.templateLayoutFetch) {
+    post {
+      parameter(paramCollection) { cl =>
+        entity(as[TemplatePanel]) { tp =>
+          onSuccess(fetchTemplateLayout(cl, tp)) { res =>
+            complete((StatusCodes.Accepted, res))
           }
         }
       }
-    )
+    }
+
+  }
+
+  private val routeLayoutModify = path(RouteName.templateLayoutModify) {
+    post {
+      parameter(paramCollection) { cl =>
+        entity(as[Layout]) { lo =>
+          onSuccess(replaceTemplateLayout(cl, lo)) { res =>
+            complete((StatusCodes.Accepted, res.toString))
+          }
+        }
+      }
+    }
   }
 
   private val routeLayoutRemove = path(RouteName.templateLayoutRemove) {
@@ -184,7 +188,8 @@ object Routing extends ProModel with SprayJsonSupport {
         routeStoresModify,
         routeStoreRemove,
         routeStoresRemove,
-        routeLayout,
+        routeLayoutFetch,
+        routeLayoutModify,
         routeLayoutRemove,
         routeLayoutStoreModify,
 

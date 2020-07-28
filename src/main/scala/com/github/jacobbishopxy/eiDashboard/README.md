@@ -103,20 +103,36 @@
 
     - POST: `http://localhost:2020/ei/dashboard/industry-stores-modify?collection=dev`
     ```
-    {
-        "anchorKey": {
-            "identity": "num1",
-            "category": "text"
+    [
+        {
+            "anchorKey": {
+                "identity": "num1",
+                "category": "text"
+            },
+            "anchorConfig": {
+                "symbol": "000001",
+                "date": "20200101"
+            },
+            "content": {
+                "data": "dev data",
+                "config": "dev config"
+            }
         },
-        "anchorConfig": {
-            "symbol": "000001",
-            "date": "20200101"
-        },
-        "content": {
-            "data": "dev data321",
-            "config": "dev config"
+        {
+            "anchorKey": {
+                "identity": "num2",
+                "category": "text"
+            },
+            "anchorConfig": {
+                "symbol": "000001",
+                "date": "20200101"
+            },
+            "content": {
+                "data": "dev ",
+                "config": "dev c1"
+            }
         }
-    }
+    ]
     ```
 
 6. industry-store-remove
@@ -163,10 +179,18 @@
     ]
     ```
 
-8. template-layout
+8. template-layout-fetch
 
-    - GET: `http://localhost:2020/ei/dashboard/template-layout?collection=dev&template=dev&panel=p`
-    
+    - POST: `http://localhost:2020/ei/dashboard/template-layout?collection=dev`
+    ```
+        {
+            "template": "dev",
+            "panel": "p"
+        }
+        ```
+
+9. template-layout-modify
+       
     - POST: `http://localhost:2020/ei/dashboard/template-layout?collection=dev`
     ```
     {
