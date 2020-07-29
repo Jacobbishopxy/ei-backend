@@ -1,7 +1,6 @@
 name := "ei-backend"
 
-version := "0.0.8"
-scalacOptions ++= Seq("-deprecation", "-feature")
+version := "0.0.9"
 
 
 val scalaV = "2.13.1"
@@ -15,6 +14,7 @@ val slickV = "3.3.2"
 val mongoV = "2.9.0"
 val corsV = "0.4.2"
 val bfV = "3.9.1"
+val catsV = "2.0.0"
 
 lazy val root = (project in file(".")).
   settings(
@@ -38,6 +38,7 @@ lazy val root = (project in file(".")).
       "ch.megard" %% "akka-http-cors" % corsV,
 
       "com.github.pathikrit" %% "better-files-akka" % bfV,
+      "org.typelevel" %% "cats-core" % catsV,
     )
   )
 

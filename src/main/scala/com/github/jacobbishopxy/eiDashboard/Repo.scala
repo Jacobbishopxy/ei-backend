@@ -6,6 +6,8 @@ import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model.Filters._
 import org.mongodb.scala.model.{Projections, ReplaceOneModel, ReplaceOptions}
 import org.mongodb.scala.result.{DeleteResult, UpdateResult}
+import cats.implicits._
+import spray.json._
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits
@@ -84,8 +86,10 @@ object ProRepo extends ProModel {
 
   import ProModel._
   import Namespace._
-
   import DbFinder._
+
+  import com.github.jacobbishopxy.CatsEnriched._
+  import com.github.jacobbishopxy.MongoResultParser._
 
   private val config: Map[String, String] = getMongoConfig(ConfigName.config)
   private val mongoDBs: Map[DB, MongoDatabase] = config.map {
@@ -232,7 +236,7 @@ object ProRepo extends ProModel {
   }
 
   /**
-   *
+   * modify layout and store at once
    */
   def replaceLayoutWithStore(layoutDC: DbCollection,
                              storeDC: DbCollection,
@@ -249,85 +253,133 @@ object ProRepo extends ProModel {
     } yield res
   }
 
+  def replaceLayoutWithStorePro(layoutDC: DbCollection,
+                                storeDC: DbCollection,
+                                layoutWithStore: LayoutWithStore): Future[List[ValidatedNelType[String]]] = {
+    import Implicits.global
+
+    val tp = layoutWithStore.templatePanel
+    val lo = layoutWithStore.layouts
+    val st = layoutWithStore.stores
+
+    List(
+      replaceLayout(layoutDC, Layout(tp, lo)).map(_.toString),
+      replaceStores(storeDC, st).map(_.toString)
+    ).traverse(_.toValidatedNel)
+
+  }
+
 
   // api methods
 
   /**
    * get industry store by anchor
    */
-  def fetchIndustryStore(collection: String, anchor: Anchor): Future[Option[Store]] =
-    fetchStore(DbCollection(DB.Industry, collection), anchor)
+  def fetchIndustryStore(collection: String, anchor: Anchor): Future[JsValue] = {
+    import Implicits.global
+    fetchStore(DbCollection(DB.Industry, collection), anchor).map(_.toJson)
+  }
 
   /**
    * get industry stores by anchors
    */
-  def fetchIndustryStores(collection: String, anchors: Seq[Anchor]): Future[Seq[Store]] =
-    fetchStores(DbCollection(DB.Industry, collection), anchors)
+  def fetchIndustryStores(collection: String, anchors: Seq[Anchor]): Future[JsValue] = {
+    import Implicits.global
+    fetchStores(DbCollection(DB.Industry, collection), anchors).map(_.toJson)
+  }
 
   /**
    * delete industry store by anchor
    */
-  def deleteIndustryStore(collection: String, anchor: Anchor): Future[DeleteResult] =
-    deleteStore(DbCollection(DB.Industry, collection), anchor)
+  def deleteIndustryStore(collection: String, anchor: Anchor): Future[JsValue] = {
+    import Implicits.global
+    deleteStore(DbCollection(DB.Industry, collection), anchor).map(_.toJson)
+  }
 
   /**
    * delete industry stores by anchors
    */
-  def deleteIndustryStores(collection: String, anchors: Seq[Anchor]): Future[DeleteResult] =
-    deleteStores(DbCollection(DB.Industry, collection), anchors)
+  def deleteIndustryStores(collection: String, anchors: Seq[Anchor]): Future[JsValue] = {
+    import Implicits.global
+    deleteStores(DbCollection(DB.Industry, collection), anchors).map(_.toJson)
+  }
 
   /**
    * modify industry store by store
    */
-  def replaceIndustryStore(collection: String, store: Store): Future[UpdateResult] =
-    replaceStore(DbCollection(DB.Industry, collection), store)
+  def replaceIndustryStore(collection: String, store: Store): Future[JsValue] = {
+    import Implicits.global
+    replaceStore(DbCollection(DB.Industry, collection), store).map(_.toJson)
+  }
 
   /**
    * modify industry stores by stores
    */
-  def replaceIndustryStores(collection: String, stores: Seq[Store]): Future[BulkWriteResult] =
-    replaceStores(DbCollection(DB.Industry, collection), stores)
+  def replaceIndustryStores(collection: String, stores: Seq[Store]): Future[JsValue] = {
+    import Implicits.global
+    replaceStores(DbCollection(DB.Industry, collection), stores).map(_.toJson)
+  }
 
   /**
    * get template layout by templatePanel
    */
-  def fetchTemplateLayout(collection: String, tp: TemplatePanel): Future[Option[Layout]] =
-    fetchLayout(DbCollection(DB.Template, collection), tp)
+  def fetchTemplateLayout(collection: String, tp: TemplatePanel): Future[JsValue] = {
+    import Implicits.global
+    fetchLayout(DbCollection(DB.Template, collection), tp).map(_.toJson)
+  }
 
   /**
    * delete template layout by templatePanel
    */
-  def deleteTemplateLayout(collection: String, tp: TemplatePanel): Future[DeleteResult] = {
+  def deleteTemplateLayout(collection: String, tp: TemplatePanel): Future[JsValue] = {
     import Implicits.global
 
     for {
-      lo <- fetchTemplateLayout(collection, tp)
-      _ <- {
+      lo <- fetchLayout(DbCollection(DB.Template, collection), tp)
+      st <- {
         lo match {
-          case None => Future.unit
-          case Some(v) => deleteIndustryStores(collection, v.layouts.map(i => Anchor(i.anchorKey, None)))
+          case None => Future.successful(None)
+          case Some(v) =>
+            deleteStores(
+              DbCollection(DB.Industry, collection),
+              v.layouts.map(i => Anchor(i.anchorKey, None))
+            ).map(Some(_))
         }
       }
-      res <- deleteLayout(DbCollection(DB.Template, collection), tp)
-    } yield res
+      res <- {
+        deleteLayout(DbCollection(DB.Template, collection), tp).map(_.toJson)
+      }
+
+    } yield List(st.toJson, res).toJson
   }
 
   /**
    * modify template layout by layout
    */
-  def replaceTemplateLayout(collection: String, layout: Layout): Future[UpdateResult] =
-    replaceLayout(DbCollection(DB.Template, collection), layout)
+  def replaceTemplateLayout(collection: String, layout: Layout): Future[JsValue] = {
+    import Implicits.global
+    replaceLayout(DbCollection(DB.Template, collection), layout).map(_.toJson)
+  }
 
   /**
-   *
+   * modify template layout and industry store at once
    */
   def replaceTemplateLayoutWithIndustryStore(collection: String,
-                                             layoutWithStore: LayoutWithStore): Future[BulkWriteResult] =
-    replaceLayoutWithStore(
-      DbCollection(DB.Template, collection),
-      DbCollection(DB.Industry, collection),
-      layoutWithStore
+                                             layoutWithStore: LayoutWithStore): Future[JsValue] = {
+    import Implicits.global
+
+    val tp = layoutWithStore.templatePanel
+    val lo = layoutWithStore.layouts
+    val st = layoutWithStore.stores
+
+    val f = List(
+      replaceLayout(DbCollection(DB.Template, collection), Layout(tp, lo)).map(_.toJson),
+      replaceStores(DbCollection(DB.Industry, collection), st).map(_.toJson)
     )
+
+    f.traverse(_.toValidatedNel).map(_.map(_.toJson).toJson)
+
+  }
 
 
 }
