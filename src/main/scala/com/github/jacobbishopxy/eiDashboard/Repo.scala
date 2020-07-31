@@ -235,40 +235,6 @@ object ProRepo extends ProModel {
       .toFuture()
   }
 
-  /**
-   * modify layout and store at once
-   */
-  def replaceLayoutWithStore(layoutDC: DbCollection,
-                             storeDC: DbCollection,
-                             layoutWithStore: LayoutWithStore): Future[BulkWriteResult] = {
-    import Implicits.global
-
-    val tp = layoutWithStore.templatePanel
-    val lo = layoutWithStore.layouts
-    val st = layoutWithStore.stores
-
-    for {
-      _ <- replaceLayout(layoutDC, Layout(tp, lo))
-      res <- replaceStores(storeDC, st)
-    } yield res
-  }
-
-  def replaceLayoutWithStorePro(layoutDC: DbCollection,
-                                storeDC: DbCollection,
-                                layoutWithStore: LayoutWithStore): Future[List[ValidatedNelType[String]]] = {
-    import Implicits.global
-
-    val tp = layoutWithStore.templatePanel
-    val lo = layoutWithStore.layouts
-    val st = layoutWithStore.stores
-
-    List(
-      replaceLayout(layoutDC, Layout(tp, lo)).map(_.toString),
-      replaceStores(storeDC, st).map(_.toString)
-    ).traverse(_.toValidatedNel)
-
-  }
-
 
   // api methods
 
