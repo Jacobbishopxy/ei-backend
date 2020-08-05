@@ -30,7 +30,9 @@
             "identity": "num1"
         },
         "content": {
-            "config": "dev config",
+            "config": {
+                "version": 0
+            },
             "data": "dev data321"
         }
     }
@@ -78,7 +80,9 @@
                "identity": "num1"
            },
            "content": {
-               "config": "dev config",
+               "config":  {
+                   "version": 0
+               },
                "data": "dev data"
            }
        },
@@ -92,7 +96,9 @@
                "identity": "num2"
            },
            "content": {
-               "config": "dev c1",
+               "config": "config":  {
+                   "version": 0
+               },
                "data": "dev "
            }
        }
@@ -115,7 +121,9 @@
         },
         "content": {
             "data": "dev data321",
-            "config": "dev config"
+            "config": "config":  {
+                "version": 0
+            }
         }
     }
     ```
@@ -146,7 +154,9 @@
             },
             "content": {
                 "data": "dev data",
-                "config": "dev config"
+                "config": "config":  {
+                    "version": 0
+                }
             }
         },
         {
@@ -160,7 +170,9 @@
             },
             "content": {
                 "data": "dev ",
-                "config": "dev c1"
+                "config": "config":  {
+                    "version": 0
+                }
             }
         }
     ]
@@ -368,7 +380,9 @@
                 },
                 "content": {
                     "data": "dev data321",
-                    "config": "dev config"
+                    "config": "config":  {
+                        "version": 0
+                    }
                 }
             }
         ]

@@ -1,6 +1,6 @@
 name := "ei-backend"
 
-version := "0.0.9"
+version := "0.0.10"
 
 
 val scalaV = "2.13.1"

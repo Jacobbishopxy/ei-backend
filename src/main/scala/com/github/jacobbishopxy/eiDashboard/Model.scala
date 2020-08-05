@@ -126,7 +126,7 @@ object ProModel extends DefaultJsonProtocol {
   case class AnchorConfig(symbol: Option[String], date: Option[String])
   case class Anchor(anchorKey: AnchorKey, anchorConfig: Option[AnchorConfig])
 
-  case class Content(data: String, config: Option[String])
+  case class Content(data: String, config: Option[Map[String, Any]])
   case class Store(anchorKey: AnchorKey, anchorConfig: Option[AnchorConfig], content: Content)
 
   case class Coordinate(x: Int, y: Int, h: Int, w: Int)
@@ -199,6 +199,22 @@ trait ProModel extends DefaultJsonProtocol {
 
 
   // json support for akka http
+
+  implicit object AnyJsonFormat extends JsonFormat[Any] {
+    def write(x: Any): JsValue = x match {
+      case n: Int => JsNumber(n)
+      case s: String => JsString(s)
+      case b: Boolean if b => JsTrue
+      case b: Boolean if !b => JsFalse
+    }
+
+    def read(value: JsValue): Any = value match {
+      case JsNumber(n) => n.toDouble
+      case JsString(s) => s
+      case JsTrue => true
+      case JsFalse => false
+    }
+  }
 
   implicit object JsonSupportDb extends JsonFormat[DB] {
 

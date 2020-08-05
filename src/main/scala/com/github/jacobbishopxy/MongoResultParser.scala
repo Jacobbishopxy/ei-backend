@@ -50,7 +50,7 @@ object MongoResultParser extends DefaultJsonProtocol {
       JsObject(
         "matchedCount" -> JsNumber(obj.getMatchedCount),
         "modifiedCount" -> JsNumber(obj.getModifiedCount),
-        "upsertedId" -> JsString(obj.getUpsertedId.toString)
+        "upsertedId" -> JsString(Option(obj.getUpsertedId).fold("null")(_.toString))
       )
   }
 
