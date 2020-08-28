@@ -126,7 +126,7 @@ object ProModel extends DefaultJsonProtocol {
   case class AnchorConfig(symbol: Option[String], date: Option[String])
   case class Anchor(anchorKey: AnchorKey, anchorConfig: Option[AnchorConfig])
 
-  case class Content(data: String, config: Option[Map[String, Any]])
+  case class Content(title: Option[String], data: String, config: Option[Map[String, Any]])
   case class Store(anchorKey: AnchorKey, anchorConfig: Option[AnchorConfig], content: Content)
 
   case class Coordinate(x: Int, y: Int, h: Int, w: Int)
@@ -243,7 +243,7 @@ trait ProModel extends DefaultJsonProtocol {
   implicit val anchorKeyFormat: RootJsonFormat[AnchorKey] = jsonFormat2(AnchorKey)
   implicit val anchorConfigFormat: RootJsonFormat[AnchorConfig] = jsonFormat2(AnchorConfig)
   implicit val anchorFormat: RootJsonFormat[Anchor] = jsonFormat2(Anchor)
-  implicit val contentFormat: RootJsonFormat[Content] = jsonFormat2(Content)
+  implicit val contentFormat: RootJsonFormat[Content] = jsonFormat3(Content)
   implicit val storeFormat: RootJsonFormat[Store] = jsonFormat3(Store)
   implicit val coordinateFormat: RootJsonFormat[Coordinate] = jsonFormat4(Coordinate)
   implicit val elementFormat: RootJsonFormat[Element] = jsonFormat2(Element)
